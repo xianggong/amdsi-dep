@@ -12,9 +12,32 @@ const (
 )
 
 const (
+	M0Register    = iota
+	VccRegister   = iota
+	VcczRegister  = iota
+	ExecRegister  = iota
+	ExeczRegister = iota
+	SccRegister   = iota
+)
+
+const (
 	maxNumVregs = 255
 	maxNumSregs = 103
 )
+
+const (
+	noh = iota
+	raw = iota
+	war = iota
+	waw = iota
+)
+
+var regHarzardMap = map[int]string{
+	noh: "noh",
+	raw: "raw",
+	war: "war",
+	waw: "waw",
+}
 
 var regTypeStringMap = map[int]string{
 	typeVectorRegister: "v",
@@ -28,8 +51,9 @@ var regIndexLimitMap = map[int]int{
 
 // Register represent a register
 type Register struct {
-	Type  int
-	Index int
+	Type   int
+	Index  int
+	Hazard int
 }
 
 var regexRegisters = `v(?P<vreg>\d+)|s(?P<sreg>\d+)|v\[(?P<vregs_start>\d+):(?P<vregs_end>\d+)\]|s\[(?P<sregs_start>\d+):(?P<sregs_end>\d+)\]`
@@ -38,8 +62,9 @@ var regexRegisters = `v(?P<vreg>\d+)|s(?P<sreg>\d+)|v\[(?P<vregs_start>\d+):(?P<
 func NewRegister(index int, regType int) *Register {
 	reg := new(Register)
 
-	// Set type
+	// Set type and Harzard
 	reg.Type = regType
+	reg.Hazard = noh
 
 	// Sanity check then set index
 	if index <= regIndexLimitMap[regType] {

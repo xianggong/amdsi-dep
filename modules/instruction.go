@@ -14,7 +14,7 @@ const (
 )
 
 var symbolMap = map[int]string{non: "_", dst: "D", src: "S", duo: "B"}
-var regexComment = `\/{2}\s+(?P<offset>[ABCDEF0-9]{8}):\s+(?P<hex>([ABCDEF0-9]{8})\s*([ABCDEF0-9]{8})*)`
+var regexComment = `\/{2}\s+(?P<offset>[A-F0-9]{8}):\s+(?P<hex>([A-F0-9]{8})\s*([A-F0-9]{8})?)\n`
 
 // Instruction contains all field of an instruction
 type Instruction struct {
@@ -32,7 +32,7 @@ type Instruction struct {
 
 // InstructionHint contains hint for the instruction
 type InstructionHint struct {
-	GroupID int
+	GroupID []int
 	Offset  int
 }
 
@@ -126,9 +126,6 @@ func (inst *Instruction) parseRegs() {
 func NewInstruction(asm string) *Instruction {
 	inst := new(Instruction)
 
-	// Default GroupID = -1, will be set during dependency analysis
-	inst.Hint.GroupID = -1
-
 	// Check if asm is a valid instruction
 	if IsValidInst(asm) {
 		inst.Raw = asm
@@ -146,6 +143,20 @@ func NewInstruction(asm string) *Instruction {
 	return inst
 }
 
+func (inst *Instruction) isFlowDependent() bool {
+	for _, reg := range inst.DstRegs {
+		if reg.Hazard == raw {
+			return true
+		}
+	}
+	for _, reg := range inst.SrcRegs {
+		if reg.Hazard == raw {
+			return true
+		}
+	}
+	return false
+}
+
 func (inst *Instruction) isMemoryInstruction() bool {
 	// Memory instructions are always added to the group
 	key := inst.InstText
@@ -159,17 +170,35 @@ func (inst *Instruction) isMemoryInstruction() bool {
 // Print instructions
 func (inst *Instruction) Print() {
 	// fmt.Println(inst.Raw)
-	fmt.Print(inst.Hint.GroupID, " ", inst.InstText, " ")
-	fmt.Print("| ")
+	for _, id := range inst.Hint.GroupID {
+		fmt.Printf("%d ", id)
+	}
+
+	fmt.Print("\t")
+	if inst.isFlowDependent() {
+		fmt.Print("T")
+	} else {
+		fmt.Print("F")
+	}
+	fmt.Printf(" %d %s\n", inst.Hint.Offset, inst.Raw)
+
 	for _, reg := range inst.DstRegs {
-		fmt.Print(regTypeStringMap[reg.Type], reg.Index, " ")
+		fmt.Println("\t\t", regTypeStringMap[reg.Type], reg.Index, "-", regHarzardMap[reg.Hazard])
 	}
-	fmt.Print("| ")
 	for _, reg := range inst.SrcRegs {
-		fmt.Print(regTypeStringMap[reg.Type], reg.Index, " ")
+		fmt.Println("\t\t", regTypeStringMap[reg.Type], reg.Index, "-", regHarzardMap[reg.Hazard])
 	}
-	fmt.Print("| ")
-	fmt.Printf("PC = %d | hex = %s\n", inst.Offset, inst.BinaryHex)
+	// fmt.Print("\t", inst.InstText, " ")
+	// fmt.Print("| ")
+	// for _, reg := range inst.DstRegs {
+	// 	fmt.Print(regTypeStringMap[reg.Type], reg.Index, " ")
+	// }
+	// fmt.Print("| ")
+	// for _, reg := range inst.SrcRegs {
+	// 	fmt.Print(regTypeStringMap[reg.Type], reg.Index, " ")
+	// }
+	// fmt.Print("| ")
+	// fmt.Printf("PC = %d | hex = %s\n", inst.Offset, inst.BinaryHex)
 }
 
 // PrintSRegs print scalar register usage as a vector
