@@ -13,7 +13,7 @@ func TestNewInstructionGroup(t *testing.T) {
 
 	testAsm := "s_mov_b32     m0, 0x00008000           // 00000000: BEFC03FF 00008000"
 	inst := NewInstruction(testAsm)
-	assert.Equal("s_mov_b32", inst.InstText)
+	assert.Equal("s_mov_b32", inst.Text)
 	instGroup.CheckThenAdd(inst)
 
 	testAsm = "s_buffer_load_dword  s0, s[4:7], 0x04  // 00000008: C2000504         "

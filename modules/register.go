@@ -1,6 +1,7 @@
 package amdsidep
 
 import (
+	"fmt"
 	"regexp"
 	"strconv"
 )
@@ -12,17 +13,22 @@ const (
 )
 
 const (
-	M0Register    = iota
-	VccRegister   = iota
-	VcczRegister  = iota
-	ExecRegister  = iota
-	ExeczRegister = iota
-	SccRegister   = iota
+	NoSpRegister       = iota
+	M0Register         = iota
+	VccRegister        = iota
+	VcczRegister       = iota
+	ExecRegister       = iota
+	ExeczRegister      = iota
+	SccRegister        = iota
+	ExecAndSccRegister = iota
+	InvalidRegister    = iota
+	SpRegisterCount    = iota
 )
 
 const (
-	maxNumVregs = 255
-	maxNumSregs = 103
+	maxNumVGPR = 255
+	maxNumSGPR = 103
+	maxNumSPPR = SpRegisterCount
 )
 
 const (
@@ -33,7 +39,7 @@ const (
 )
 
 var regHarzardMap = map[int]string{
-	noh: "noh",
+	noh: "non",
 	raw: "raw",
 	war: "war",
 	waw: "waw",
@@ -44,19 +50,33 @@ var regTypeStringMap = map[int]string{
 	typeScalarRegister: "s",
 }
 
-var regIndexLimitMap = map[int]int{
-	typeVectorRegister: maxNumVregs,
-	typeScalarRegister: maxNumSregs,
+var sprTypeStringMap = map[int]string{
+	NoSpRegister:       "no_spr",
+	M0Register:         "m0",
+	VccRegister:        "vcc",
+	VcczRegister:       "vccz",
+	ExecRegister:       "exec",
+	ExeczRegister:      "execz",
+	SccRegister:        "scc",
+	ExecAndSccRegister: "exec & scc",
+	InvalidRegister:    "invalid spr",
+	SpRegisterCount:    "spr count",
 }
 
-// Register represent a register
+var regIndexLimitMap = map[int]int{
+	typeVectorRegister:  maxNumVGPR,
+	typeScalarRegister:  maxNumSGPR,
+	typeSpecialRegister: maxNumSPPR,
+}
+
+// Register represents a register
 type Register struct {
 	Type   int
 	Index  int
 	Hazard int
 }
 
-var regexRegisters = `v(?P<vreg>\d+)|s(?P<sreg>\d+)|v\[(?P<vregs_start>\d+):(?P<vregs_end>\d+)\]|s\[(?P<sregs_start>\d+):(?P<sregs_end>\d+)\]`
+var regexRegisters = `v(?P<vreg>\d+)|s(?P<sreg>\d+)|v\[(?P<vregs_start>\d+):(?P<vregs_end>\d+)\]|s\[(?P<sregs_start>\d+):(?P<sregs_end>\d+)\]|(?P<m0>m0)|(?P<vcc>vcc)|(?P<exec>exec)|(?P<scc>scc)`
 
 // NewRegister creates a register
 func NewRegister(index int, regType int) *Register {
@@ -114,6 +134,18 @@ func ParseRegisters(asm string) []*Register {
 					reg := NewRegister(idx, typeScalarRegister)
 					regs = append(regs, reg)
 				}
+			case "m0":
+				reg := NewRegister(M0Register, typeSpecialRegister)
+				regs = append(regs, reg)
+			case "exec":
+				reg := NewRegister(ExecRegister, typeSpecialRegister)
+				regs = append(regs, reg)
+			case "vcc":
+				reg := NewRegister(VccRegister, typeSpecialRegister)
+				regs = append(regs, reg)
+			case "scc":
+				reg := NewRegister(SccRegister, typeSpecialRegister)
+				regs = append(regs, reg)
 			case "vregs_end", "sregs_end":
 			default:
 				panic("Invalid key")
@@ -122,4 +154,18 @@ func ParseRegisters(asm string) []*Register {
 	}
 
 	return regs
+}
+
+func (reg *Register) Dump() string {
+	switch reg.Type {
+	case typeSpecialRegister:
+		return fmt.Sprintf("%s - %s", sprTypeStringMap[reg.Index],
+			regHarzardMap[reg.Hazard])
+	case typeVectorRegister, typeScalarRegister:
+		return fmt.Sprintf("%s %d - %s", regTypeStringMap[reg.Type], reg.Index,
+			regHarzardMap[reg.Hazard])
+	default:
+		return "Dump() error: invalid register type"
+	}
+
 }

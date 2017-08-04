@@ -12,11 +12,11 @@ func TestNewInstruction(t *testing.T) {
 	testAsm := "	 tbuffer_load_format_x  v6, v6, s[12:15], 0 offen format:[BUF_DATA_FORMAT_32,BUF_NUM_FORMAT_FLOAT] // 00000158: EBA01000 80030606"
 	result := NewInstruction(testAsm)
 
-	assert.Equal("MTBUF", result.InstType)
-	assert.Equal("tbuffer_load_format_x", result.InstText)
+	assert.Equal("MTBUF", result.Type)
+	assert.Equal("tbuffer_load_format_x", result.Text)
 	assert.Equal(testAsm, result.Raw)
 	assert.Equal(int64(344), result.Offset)
-	assert.Equal("EBA01000 80030606", result.BinaryHex)
+	assert.Equal("EBA01000 80030606", result.Hex)
 
 	assert.Equal(typeVectorRegister, result.DstRegs[0].Type)
 	assert.Equal(6, result.DstRegs[0].Index)
@@ -36,7 +36,7 @@ func TestNewInstruction(t *testing.T) {
 		assert.Equal(non, result.VRegs[i])
 	}
 	assert.Equal(duo, result.VRegs[6])
-	for i := 7; i < maxNumVregs; i++ {
+	for i := 7; i < maxNumVGPR; i++ {
 		assert.Equal(non, result.VRegs[i])
 	}
 
@@ -47,7 +47,7 @@ func TestNewInstruction(t *testing.T) {
 	assert.Equal(src, result.SRegs[13])
 	assert.Equal(src, result.SRegs[14])
 	assert.Equal(src, result.SRegs[15])
-	for i := 16; i < maxNumSregs; i++ {
+	for i := 16; i < maxNumSGPR; i++ {
 		assert.Equal(non, result.SRegs[i])
 	}
 }

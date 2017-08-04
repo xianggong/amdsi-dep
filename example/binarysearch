@@ -44,6 +44,3 @@ tbuffer_store_format_xyzw  v[3:6], v2, s[8:11], 0 offen format:[BUF_DATA_FORMAT_
 label_0033:
 s_mov_b64     exec, s[6:7]                                // 000000CC: BEFE0406
 s_endpgm                                                  // 000000D0: BF810000
-
-
-

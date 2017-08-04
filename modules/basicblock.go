@@ -14,7 +14,6 @@ type SubBasicBlock struct {
 	Instructions      []*Instruction
 	InstructionGroups []*InstructionGroup
 	WaitCount         int
-	hasWait           bool
 }
 
 // NewBasicBlock returns a basic block
@@ -31,33 +30,35 @@ func NewSubBasicBlock() *SubBasicBlock {
 	return sbb
 }
 
+// GetNewInstructionGroupID returns a new instruction group id
 func (bb *BasicBlock) GetNewInstructionGroupID() int {
 	val := bb.InstructionGroupID
 	bb.InstructionGroupID++
 	return val
 }
 
-// Add checks all the instruction groups for dependency, creates new group if
-// no dependency is found
+// Add an new instruction to the basic block
 func (bb *BasicBlock) Add(inst *Instruction) {
 	// Add to instruction array
 	bb.Instructions = append(bb.Instructions, inst)
 
-	// Always use the last sub basic block
+	// Sanity check
 	if len(bb.SubBasicBlocks) == 0 {
 		sbb := new(SubBasicBlock)
 		bb.SubBasicBlocks = append(bb.SubBasicBlocks, sbb)
 	}
+
+	// Always use the last sub basic block
 	sbb := bb.SubBasicBlocks[len(bb.SubBasicBlocks)-1]
 
 	// Always add computational instructions
 	if !inst.isMemoryInstruction() {
 		sbb.Instructions = append(sbb.Instructions, inst)
 	} else {
-		// Only add when no s_waitcnt instructions
-		if sbb.WaitCount != 2 {
+		// Only add when s_waitcnt < 2
+		if sbb.WaitCount < 2 {
 			sbb.Instructions = append(sbb.Instructions, inst)
-			if inst.InstText == "s_waitcnt" {
+			if inst.Text == "s_waitcnt" || inst.Text == "s_barrier" {
 				sbb.WaitCount++
 			}
 		} else {
@@ -70,21 +71,16 @@ func (bb *BasicBlock) Add(inst *Instruction) {
 
 // Analysis dependency and group
 func (bb *BasicBlock) Analysis() {
-	for _, sbb := range bb.SubBasicBlocks {
+	for idxSbb, sbb := range bb.SubBasicBlocks {
 		for _, inst := range sbb.Instructions {
+			// Update Hint info
+			inst.Hint.SBBID = idxSbb
+
 			// If there is no group, create one and add instruction
 			if len(sbb.InstructionGroups) == 0 {
 				instGroup := NewInstructionGroup(bb)
 				instGroup.add(inst)
 				sbb.InstructionGroups = append(sbb.InstructionGroups, instGroup)
-				// fmt.Print("New instructionGroup = ", instGroup.ID)
-				// instGroup.PrintDefVRegs()
-				// instGroup.PrintUseVRegs()
-				// instGroup.PrintDefSRegs()
-				// instGroup.PrintUseSRegs()
-				// fmt.Println()
-				// fmt.Print("  Add instruction: ")
-				// inst.Print()
 				continue
 			}
 
@@ -92,14 +88,6 @@ func (bb *BasicBlock) Analysis() {
 			isDependent := false
 			for _, instGroup := range sbb.InstructionGroups {
 				if instGroup.CheckThenAdd(inst) {
-					// fmt.Print("Dep instructionGroup = ", instGroup.ID)
-					// instGroup.PrintDefVRegs()
-					// instGroup.PrintUseVRegs()
-					// instGroup.PrintDefSRegs()
-					// instGroup.PrintUseSRegs()
-					// fmt.Println()
-					// fmt.Print("  Add computational instruction: ")
-					// inst.Print()
 					isDependent = true
 					continue
 				}
@@ -113,14 +101,6 @@ func (bb *BasicBlock) Analysis() {
 			if inst.isMemoryInstruction() {
 				instGroup := sbb.InstructionGroups[len(sbb.InstructionGroups)-1]
 				instGroup.add(inst)
-				// fmt.Print("Dep instructionGroup = ", instGroup.ID)
-				// instGroup.PrintDefVRegs()
-				// instGroup.PrintUseVRegs()
-				// instGroup.PrintDefSRegs()
-				// instGroup.PrintUseSRegs()
-				// fmt.Println()
-				// fmt.Print("  Add memory instruction: ")
-				// inst.Print()
 				continue
 			}
 
@@ -128,22 +108,10 @@ func (bb *BasicBlock) Analysis() {
 			instGroup := NewInstructionGroup(bb)
 			instGroup.add(inst)
 			sbb.InstructionGroups = append(sbb.InstructionGroups, instGroup)
-			// fmt.Print("NoDep instructionGroup = ", instGroup.ID)
-			// instGroup.PrintDefVRegs()
-			// instGroup.PrintUseVRegs()
-			// instGroup.PrintDefSRegs()
-			// instGroup.PrintUseSRegs()
-			// fmt.Println()
-			// fmt.Print("  Add computational instruction: ")
-			// inst.Print()
 		}
 	}
 }
 
 func (bb *BasicBlock) Print() {
 	fmt.Println(bb.Label)
-	// for _, instGroup := range bb.InstructionGroups {
-	// 	instGroup.Print()
-	// }
-
 }

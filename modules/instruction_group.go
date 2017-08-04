@@ -1,23 +1,18 @@
 package amdsidep
 
-import "fmt"
-
-var activeStringMap = map[bool]string{
-	true:  "*",
-	false: "_",
-}
-
 // InstructionGroup contains instructions with dependency
 type InstructionGroup struct {
-	BasicBlock *BasicBlock
 	ID         int
+	BasicBlock *BasicBlock
 	Insts      []*Instruction
-	MaxVRegs   int
-	UseVRegs   [maxNumVregs]bool
-	DefVRegs   [maxNumVregs]bool
-	MaxSRegs   int
-	UseSRegs   [maxNumSregs]bool
-	DefSRegs   [maxNumSregs]bool
+
+	// Register use/def lookup table
+	UseVGPR [maxNumVGPR]bool
+	DefVGPR [maxNumVGPR]bool
+	UseSGPR [maxNumSGPR]bool
+	DefSGPR [maxNumSGPR]bool
+	UseSPPR [maxNumSPPR]bool
+	DefSPPR [maxNumSPPR]bool
 }
 
 // NewInstructionGroup creates a new instruction group
@@ -26,6 +21,63 @@ func NewInstructionGroup(bb *BasicBlock) *InstructionGroup {
 	instGroup.BasicBlock = bb
 	instGroup.ID = bb.GetNewInstructionGroupID()
 	return instGroup
+}
+
+func (instGroup *InstructionGroup) updateVGPR(inst *Instruction) {
+	// Update register status
+	for idx, role := range inst.roleVGPR {
+		switch role {
+		case dst:
+			instGroup.DefVGPR[idx] = true
+		case src:
+			instGroup.UseVGPR[idx] = true
+		case duo:
+			instGroup.DefVGPR[idx] = true
+			instGroup.UseVGPR[idx] = true
+		case non:
+			continue
+		default:
+			panic("Invalid role of register")
+		}
+	}
+}
+
+func (instGroup *InstructionGroup) updateSGPR(inst *Instruction) {
+	// Update register status
+	for idx, role := range inst.roleSGPR {
+		switch role {
+		case dst:
+			instGroup.DefSGPR[idx] = true
+		case src:
+			instGroup.UseSGPR[idx] = true
+		case duo:
+			instGroup.DefSGPR[idx] = true
+			instGroup.UseSGPR[idx] = true
+		case non:
+			continue
+		default:
+			panic("Invalid role of register")
+		}
+	}
+}
+
+func (instGroup *InstructionGroup) updateSPPR(inst *Instruction) {
+	// Update register status
+	for idx, role := range inst.roleSPPR {
+		switch role {
+		case dst:
+			instGroup.DefSPPR[idx] = true
+		case src:
+			instGroup.UseSPPR[idx] = true
+		case duo:
+			instGroup.DefSPPR[idx] = true
+			instGroup.UseSPPR[idx] = true
+		case non:
+			continue
+		default:
+			panic("Invalid role of register")
+		}
+	}
 }
 
 // add an instruction to the InstructionGroup without dependency checking
@@ -37,65 +89,35 @@ func (instGroup *InstructionGroup) add(inst *Instruction) {
 	inst.Hint.GroupID = append(inst.Hint.GroupID, instGroup.ID)
 
 	// Check hazard
-	instGroup.detectHazard(inst)
+	instGroup.hazardAnalysis(inst)
 
-	// Update vector register usage
-	for idx, role := range inst.VRegs {
-		// Update the maximum index of vector registers used in this group
-		if role != non && idx > instGroup.MaxVRegs {
-			instGroup.MaxVRegs = idx
-		}
-		switch role {
-		case dst:
-			instGroup.DefVRegs[idx] = true
-		case src:
-			instGroup.UseVRegs[idx] = true
-		case duo:
-			instGroup.DefVRegs[idx] = true
-			instGroup.UseVRegs[idx] = true
-		case non:
-			continue
-		default:
-			panic("Invalid role of register")
-		}
-	}
-
-	// Update scalar register usage
-	for idx, val := range inst.SRegs {
-		if val != 0 && idx > instGroup.MaxSRegs {
-			instGroup.MaxSRegs = idx
-		}
-		switch val {
-		case dst:
-			instGroup.DefSRegs[idx] = true
-		case src:
-			instGroup.UseSRegs[idx] = true
-		case duo:
-			instGroup.DefSRegs[idx] = true
-			instGroup.UseSRegs[idx] = true
-		case non:
-			continue
-		default:
-			panic("Invalid role of register")
-		}
-	}
+	// Update register use/def lookup table
+	instGroup.updateVGPR(inst)
+	instGroup.updateSGPR(inst)
+	instGroup.updateSPPR(inst)
 }
 
-func (instGroup *InstructionGroup) detectHazard(inst *Instruction) {
+func (instGroup *InstructionGroup) hazardAnalysis(inst *Instruction) {
 	// WAR or WAW harzard
 	for _, reg := range inst.DstRegs {
 		idx := reg.Index
 		switch reg.Type {
 		case typeScalarRegister:
-			if instGroup.DefSRegs[idx] {
+			if instGroup.DefSGPR[idx] {
 				reg.Hazard = waw
-			} else if instGroup.UseSRegs[idx] {
+			} else if instGroup.UseSGPR[idx] {
 				reg.Hazard = war
 			}
 		case typeVectorRegister:
-			if instGroup.DefVRegs[idx] {
+			if instGroup.DefVGPR[idx] {
 				reg.Hazard = waw
-			} else if instGroup.UseVRegs[idx] {
+			} else if instGroup.UseVGPR[idx] {
+				reg.Hazard = war
+			}
+		case typeSpecialRegister:
+			if instGroup.DefSPPR[idx] {
+				reg.Hazard = waw
+			} else if instGroup.UseSPPR[idx] {
 				reg.Hazard = war
 			}
 		}
@@ -106,11 +128,15 @@ func (instGroup *InstructionGroup) detectHazard(inst *Instruction) {
 		idx := reg.Index
 		switch reg.Type {
 		case typeScalarRegister:
-			if instGroup.DefSRegs[idx] {
+			if instGroup.DefSGPR[idx] {
 				reg.Hazard = raw
 			}
 		case typeVectorRegister:
-			if instGroup.DefVRegs[idx] {
+			if instGroup.DefVGPR[idx] {
+				reg.Hazard = raw
+			}
+		case typeSpecialRegister:
+			if instGroup.DefSPPR[idx] {
 				reg.Hazard = raw
 			}
 		}
@@ -121,17 +147,27 @@ func (instGroup *InstructionGroup) detectHazard(inst *Instruction) {
 func (instGroup *InstructionGroup) isDependent(inst *Instruction) bool {
 	isDependent := false
 
-	// Check if this instruction uses any VRegs belongs to instGroup.DefVRegs
-	for i := 0; i < maxNumVregs; i++ {
-		if inst.VRegs[i] != 0 && instGroup.DefVRegs[i] == true {
+	// Check if this instruction uses any VGPR in the DefVGPR lookup table
+	for i := 0; i < maxNumVGPR; i++ {
+		if inst.roleVGPR[i] != non && instGroup.DefVGPR[i] == true {
 			isDependent = true
 			break
 		}
 	}
 
-	// Check if this instruction uses any SRegs belongs to instGroup.DefSRegs
-	for i := 0; i < maxNumSregs; i++ {
-		if inst.SRegs[i] != 0 && instGroup.DefSRegs[i] == true {
+	// Check if this instruction uses any SGPR in the DefSGPR lookup table
+	for i := 0; i < maxNumSGPR; i++ {
+		if inst.roleSGPR[i] != non && instGroup.DefSGPR[i] == true {
+			isDependent = true
+			break
+		}
+	}
+
+	// Check if this instruction explicitly uses any SPPR
+	for i := 0; i < maxNumSPPR; i++ {
+		idxUse := GetInstMisc(inst.Text).SrcSpReg
+		idxDef := GetInstMisc(inst.Text).DstSpReg
+		if instGroup.UseSPPR[idxUse] || instGroup.DefSPPR[idxDef] {
 			isDependent = true
 			break
 		}
@@ -151,49 +187,49 @@ func (instGroup *InstructionGroup) CheckThenAdd(inst *Instruction) bool {
 	return false
 }
 
-// PrintUseSRegs print use of SRegs
-func (instGroup *InstructionGroup) PrintUseSRegs() {
-	fmt.Print("\tUseSregs:  ")
-	for idx := 0; idx <= instGroup.MaxSRegs; idx++ {
-		fmt.Print(activeStringMap[instGroup.UseSRegs[idx]])
-	}
-}
+// // PrintUseSGPR print use of SRegs
+// func (instGroup *InstructionGroup) PrintUseSGPR() {
+// 	fmt.Print("\tUseSGPR:  ")
+// 	for idx := 0; idx <= instGroup.MaxIdxSRegs; idx++ {
+// 		fmt.Print(activeStringMap[instGroup.UseSGPR[idx]])
+// 	}
+// }
 
-// PrintUseVRegs print use of VRegs
-func (instGroup *InstructionGroup) PrintUseVRegs() {
-	fmt.Print("\tUseVregs:  ")
-	for idx := 0; idx <= instGroup.MaxVRegs; idx++ {
-		fmt.Print(activeStringMap[instGroup.UseVRegs[idx]])
-	}
-}
+// // PrintUseVGPR print use of VRegs
+// func (instGroup *InstructionGroup) PrintUseVGPR() {
+// 	fmt.Print("\tUseVGPR:  ")
+// 	for idx := 0; idx <= instGroup.MaxIdxVRegs; idx++ {
+// 		fmt.Print(activeStringMap[instGroup.UseVGPR[idx]])
+// 	}
+// }
 
-// PrintDefSRegs print def of SRegs
-func (instGroup *InstructionGroup) PrintDefSRegs() {
-	fmt.Print("\tDefSregs:  ")
-	for idx := 0; idx <= instGroup.MaxSRegs; idx++ {
-		fmt.Print(activeStringMap[instGroup.DefSRegs[idx]])
-	}
-}
+// // PrintDefSGPR print def of SRegs
+// func (instGroup *InstructionGroup) PrintDefSGPR() {
+// 	fmt.Print("\tDefSGPR:  ")
+// 	for idx := 0; idx <= instGroup.MaxIdxSRegs; idx++ {
+// 		fmt.Print(activeStringMap[instGroup.DefSGPR[idx]])
+// 	}
+// }
 
-// PrintDefVRegs print use of VRegs
-func (instGroup *InstructionGroup) PrintDefVRegs() {
-	fmt.Print("\tDefVregs:  ")
-	for idx := 0; idx <= instGroup.MaxVRegs; idx++ {
-		fmt.Print(activeStringMap[instGroup.DefVRegs[idx]])
-	}
-}
+// // PrintDefVGPR print use of VRegs
+// func (instGroup *InstructionGroup) PrintDefVGPR() {
+// 	fmt.Print("\tDefVGPR:  ")
+// 	for idx := 0; idx <= instGroup.MaxIdxVRegs; idx++ {
+// 		fmt.Print(activeStringMap[instGroup.DefVGPR[idx]])
+// 	}
+// }
 
 // Print output the usage of registers
 func (instGroup *InstructionGroup) Print() {
 	for _, inst := range instGroup.Insts {
 		inst.Print()
 	}
-	instGroup.PrintDefSRegs()
-	fmt.Println()
-	instGroup.PrintUseSRegs()
-	fmt.Println()
-	instGroup.PrintDefVRegs()
-	fmt.Println()
-	instGroup.PrintUseVRegs()
-	fmt.Println()
+	// instGroup.PrintDefSGPR()
+	// fmt.Println()
+	// instGroup.PrintUseSGPR()
+	// fmt.Println()
+	// instGroup.PrintDefVGPR()
+	// fmt.Println()
+	// instGroup.PrintUseVGPR()
+	// fmt.Println()
 }
