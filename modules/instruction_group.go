@@ -1,5 +1,7 @@
 package amdsidep
 
+import "fmt"
+
 // InstructionGroup contains instructions with dependency
 type InstructionGroup struct {
 	ID         int
@@ -85,6 +87,14 @@ func (instGroup *InstructionGroup) add(inst *Instruction) {
 	// Add instruction to the group unconditionally
 	instGroup.Insts = append(instGroup.Insts, inst)
 
+	for _, reg := range inst.DstRegs {
+		fmt.Printf("D %s\n", reg.Dump())
+	}
+
+	for _, reg := range inst.SrcRegs {
+		fmt.Printf("S %s\n", reg.Dump())
+	}
+
 	// Add group id
 	inst.Hint.GroupID = append(inst.Hint.GroupID, instGroup.ID)
 
@@ -150,6 +160,7 @@ func (instGroup *InstructionGroup) isDependent(inst *Instruction) bool {
 	// Check if this instruction uses any VGPR in the DefVGPR lookup table
 	for i := 0; i < maxNumVGPR; i++ {
 		if inst.roleVGPR[i] != non && instGroup.DefVGPR[i] == true {
+			fmt.Printf("dep v%d\n", i)
 			isDependent = true
 			break
 		}
@@ -158,16 +169,17 @@ func (instGroup *InstructionGroup) isDependent(inst *Instruction) bool {
 	// Check if this instruction uses any SGPR in the DefSGPR lookup table
 	for i := 0; i < maxNumSGPR; i++ {
 		if inst.roleSGPR[i] != non && instGroup.DefSGPR[i] == true {
+			fmt.Printf("dep s%d\n", i)
 			isDependent = true
 			break
 		}
 	}
 
 	// Check if this instruction explicitly uses any SPPR
+	idx := GetInstMisc(inst.Text).SrcSpReg
 	for i := 0; i < maxNumSPPR; i++ {
-		idxUse := GetInstMisc(inst.Text).SrcSpReg
-		idxDef := GetInstMisc(inst.Text).DstSpReg
-		if instGroup.UseSPPR[idxUse] || instGroup.DefSPPR[idxDef] {
+		if instGroup.DefSPPR[idx] {
+			fmt.Printf("dep %s\n", sprTypeStringMap[idx])
 			isDependent = true
 			break
 		}

@@ -81,6 +81,7 @@ func (bb *BasicBlock) Analysis() {
 				instGroup := NewInstructionGroup(bb)
 				instGroup.add(inst)
 				sbb.InstructionGroups = append(sbb.InstructionGroups, instGroup)
+				fmt.Printf("new: group %d += %s\n\n", instGroup.ID, inst.Raw)
 				continue
 			}
 
@@ -89,6 +90,7 @@ func (bb *BasicBlock) Analysis() {
 			for _, instGroup := range sbb.InstructionGroups {
 				if instGroup.CheckThenAdd(inst) {
 					isDependent = true
+					fmt.Printf("dep: group %d += %s\n\n", instGroup.ID, inst.Raw)
 					continue
 				}
 			}
@@ -101,15 +103,21 @@ func (bb *BasicBlock) Analysis() {
 			if inst.isMemoryInstruction() {
 				instGroup := sbb.InstructionGroups[len(sbb.InstructionGroups)-1]
 				instGroup.add(inst)
+				fmt.Printf("mem: group %d += %s\n\n", instGroup.ID, inst.Raw)
 				continue
 			}
 
-			// Independent instruction , create new group and add it
+			// Independent instruction, create new group and add it
 			instGroup := NewInstructionGroup(bb)
 			instGroup.add(inst)
 			sbb.InstructionGroups = append(sbb.InstructionGroups, instGroup)
+			fmt.Printf("idp: group %d += %s\n\n", instGroup.ID, inst.Raw)
 		}
 	}
+}
+
+func (bb *BasicBlock) GenHint() {
+
 }
 
 func (bb *BasicBlock) Print() {

@@ -44,6 +44,12 @@ func (k *Kernel) Analysis() {
 	}
 }
 
+func (k *Kernel) GenHint() {
+	for _, bb := range k.BasicBlocks {
+		bb.GenHint()
+	}
+}
+
 // Print output BasicBlocks and the group information
 func (k *Kernel) Print() {
 	for _, bb := range k.BasicBlocks {

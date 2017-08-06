@@ -1,5 +1,7 @@
 package amdsidep
 
+import "fmt"
+
 type InstMisc struct {
 	Type      string // Type of instruction
 	IsMemInst bool   // Is a memory instruction ?
@@ -10,6 +12,8 @@ type InstMisc struct {
 func GetInstMisc(key string) *InstMisc {
 	if val, ok := InstsMisc[key]; ok {
 		return &val
+	} else {
+		fmt.Println("No ", key)
 	}
 
 	return nil
