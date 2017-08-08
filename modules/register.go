@@ -28,7 +28,7 @@ const (
 const (
 	maxNumVGPR = 255
 	maxNumSGPR = 103
-	maxNumSPPR = SpRegisterCount
+	maxNumSPPR = SpRegisterCount + 1
 )
 
 const (

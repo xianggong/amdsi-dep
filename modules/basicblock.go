@@ -52,7 +52,7 @@ func (bb *BasicBlock) Add(inst *Instruction) {
 	sbb := bb.SubBasicBlocks[len(bb.SubBasicBlocks)-1]
 
 	// Always add computational instructions
-	if !inst.isMemoryInstruction() {
+	if !IsMemoryInstruction(inst.Text) {
 		sbb.Instructions = append(sbb.Instructions, inst)
 	} else {
 		// Only add when s_waitcnt < 2
@@ -81,7 +81,7 @@ func (bb *BasicBlock) Analysis() {
 				instGroup := NewInstructionGroup(bb)
 				instGroup.add(inst)
 				sbb.InstructionGroups = append(sbb.InstructionGroups, instGroup)
-				fmt.Printf("new: group %d += %s\n\n", instGroup.ID, inst.Raw)
+				// fmt.Printf("new: group %d += %s\n\n", instGroup.ID, inst.Raw)
 				continue
 			}
 
@@ -90,7 +90,7 @@ func (bb *BasicBlock) Analysis() {
 			for _, instGroup := range sbb.InstructionGroups {
 				if instGroup.CheckThenAdd(inst) {
 					isDependent = true
-					fmt.Printf("dep: group %d += %s\n\n", instGroup.ID, inst.Raw)
+					// fmt.Printf("dep: group %d += %s\n\n", instGroup.ID, inst.Raw)
 					continue
 				}
 			}
@@ -100,10 +100,10 @@ func (bb *BasicBlock) Analysis() {
 			}
 
 			// Memory instructions
-			if inst.isMemoryInstruction() {
+			if IsMemoryInstruction(inst.Text) {
 				instGroup := sbb.InstructionGroups[len(sbb.InstructionGroups)-1]
 				instGroup.add(inst)
-				fmt.Printf("mem: group %d += %s\n\n", instGroup.ID, inst.Raw)
+				// fmt.Printf("mem: group %d += %s\n\n", instGroup.ID, inst.Raw)
 				continue
 			}
 
@@ -111,13 +111,17 @@ func (bb *BasicBlock) Analysis() {
 			instGroup := NewInstructionGroup(bb)
 			instGroup.add(inst)
 			sbb.InstructionGroups = append(sbb.InstructionGroups, instGroup)
-			fmt.Printf("idp: group %d += %s\n\n", instGroup.ID, inst.Raw)
+			// fmt.Printf("idp: group %d += %s\n\n", instGroup.ID, inst.Raw)
 		}
 	}
 }
 
 func (bb *BasicBlock) GenHint() {
+	// for idxSbb, sbb := range bb.SubBasicBlocks {
+	// 	for _, inst := range sbb.Instructions {
 
+	// 	}
+	// }
 }
 
 func (bb *BasicBlock) Print() {

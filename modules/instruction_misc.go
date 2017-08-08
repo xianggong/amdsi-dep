@@ -19,6 +19,22 @@ func GetInstMisc(key string) *InstMisc {
 	return nil
 }
 
+// GetType returns the type of an instruction
+func GetInstType(key string) string {
+	if val, ok := InstsMisc[key]; ok {
+		return val.Type
+	}
+	return "Invalid"
+}
+
+func IsMemoryInstruction(key string) bool {
+	if val, ok := InstsMisc[key]; ok {
+		return val.IsMemInst
+	}
+
+	return false
+}
+
 // InstSpecialRegsDef contains the instructions and their corresponding instruction type
 var InstsMisc = map[string]InstMisc{
 	"s_add_u32":                 InstMisc{"SOP2", false, SccRegister, NoSpRegister},

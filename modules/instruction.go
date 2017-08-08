@@ -28,10 +28,6 @@ type Instruction struct {
 	DstRegs []*Register
 	SrcRegs []*Register
 
-	roleVGPR [maxNumVGPR]int
-	roleSGPR [maxNumSGPR]int
-	roleSPPR [maxNumSPPR]int
-
 	Hint InstructionHint
 }
 
@@ -46,6 +42,51 @@ func delimiter(r rune) bool {
 	return r == ' ' || r == ',' || r == '/' || r == '\t'
 }
 
+func (inst *Instruction) getImplicitRegs() {
+	// Get implicit usage of special registers
+	idxSpReg := GetInstMisc(inst.Text).DstSpReg
+	switch idxSpReg {
+	case M0Register, SccRegister:
+		reg := NewRegister(idxSpReg, typeSpecialRegister)
+		inst.DstRegs = append(inst.DstRegs, reg)
+	case VccRegister, VcczRegister:
+		reg := NewRegister(VccRegister, typeSpecialRegister)
+		inst.DstRegs = append(inst.DstRegs, reg)
+	case ExecRegister, ExeczRegister:
+		reg := NewRegister(ExecRegister, typeSpecialRegister)
+		inst.DstRegs = append(inst.DstRegs, reg)
+	case ExecAndSccRegister:
+		reg := NewRegister(ExecRegister, typeSpecialRegister)
+		inst.DstRegs = append(inst.DstRegs, reg)
+		reg = NewRegister(SccRegister, typeSpecialRegister)
+		inst.DstRegs = append(inst.DstRegs, reg)
+	case InvalidRegister, SpRegisterCount:
+		fmt.Println(inst.Raw)
+		panic("Invalid Special Register used in InstsMisc table")
+	}
+
+	idxSpReg = GetInstMisc(inst.Text).SrcSpReg
+	switch idxSpReg {
+	case M0Register, SccRegister:
+		reg := NewRegister(idxSpReg, typeSpecialRegister)
+		inst.SrcRegs = append(inst.SrcRegs, reg)
+	case VccRegister, VcczRegister:
+		reg := NewRegister(VccRegister, typeSpecialRegister)
+		inst.SrcRegs = append(inst.SrcRegs, reg)
+	case ExecRegister, ExeczRegister:
+		reg := NewRegister(ExecRegister, typeSpecialRegister)
+		inst.SrcRegs = append(inst.SrcRegs, reg)
+	case ExecAndSccRegister:
+		reg := NewRegister(ExecRegister, typeSpecialRegister)
+		inst.SrcRegs = append(inst.SrcRegs, reg)
+		reg = NewRegister(SccRegister, typeSpecialRegister)
+		inst.SrcRegs = append(inst.SrcRegs, reg)
+	case InvalidRegister, SpRegisterCount:
+		fmt.Println(inst.Raw)
+		panic("Invalid Special Register used in InstsMisc table")
+	}
+}
+
 func (inst *Instruction) parseInst() bool {
 	// Split assembly, the 1st field is the Text
 	inputField := strings.FieldsFunc(inst.Raw, delimiter)
@@ -54,7 +95,7 @@ func (inst *Instruction) parseInst() bool {
 
 			// Get instruction string and type from the first field
 			inst.Text = inputField[0]
-			inst.Type = GetType(inst.Text)
+			inst.Type = GetInstType(inst.Text)
 
 			// Get vector and scalar register usage
 			for i := 1; i < len(inputField); i++ {
@@ -73,48 +114,8 @@ func (inst *Instruction) parseInst() bool {
 				}
 			}
 
-			// Get implicit usage of special registers
-			idxSpReg := GetInstMisc(inst.Text).DstSpReg
-			switch idxSpReg {
-			case M0Register, SccRegister:
-				reg := NewRegister(idxSpReg, typeSpecialRegister)
-				inst.DstRegs = append(inst.DstRegs, reg)
-			case VccRegister, VcczRegister:
-				reg := NewRegister(VccRegister, typeSpecialRegister)
-				inst.DstRegs = append(inst.DstRegs, reg)
-			case ExecRegister, ExeczRegister:
-				reg := NewRegister(ExecRegister, typeSpecialRegister)
-				inst.DstRegs = append(inst.DstRegs, reg)
-			case ExecAndSccRegister:
-				reg := NewRegister(ExecRegister, typeSpecialRegister)
-				inst.DstRegs = append(inst.DstRegs, reg)
-				reg = NewRegister(SccRegister, typeSpecialRegister)
-				inst.DstRegs = append(inst.DstRegs, reg)
-			case InvalidRegister, SpRegisterCount:
-				fmt.Println(inst.Raw)
-				panic("Invalid Special Register used in InstsMisc table")
-			}
-
-			idxSpReg = GetInstMisc(inst.Text).SrcSpReg
-			switch idxSpReg {
-			case M0Register, SccRegister:
-				reg := NewRegister(idxSpReg, typeSpecialRegister)
-				inst.SrcRegs = append(inst.SrcRegs, reg)
-			case VccRegister, VcczRegister:
-				reg := NewRegister(VccRegister, typeSpecialRegister)
-				inst.SrcRegs = append(inst.SrcRegs, reg)
-			case ExecRegister, ExeczRegister:
-				reg := NewRegister(ExecRegister, typeSpecialRegister)
-				inst.SrcRegs = append(inst.SrcRegs, reg)
-			case ExecAndSccRegister:
-				reg := NewRegister(ExecRegister, typeSpecialRegister)
-				inst.SrcRegs = append(inst.SrcRegs, reg)
-				reg = NewRegister(SccRegister, typeSpecialRegister)
-				inst.SrcRegs = append(inst.SrcRegs, reg)
-			case InvalidRegister, SpRegisterCount:
-				fmt.Println(inst.Raw)
-				panic("Invalid Special Register used in InstsMisc table")
-			}
+			// Get implicit use of special registers
+			inst.getImplicitRegs()
 
 			// Get the offset and hex
 			comment := parseNamedGroup(regexComment, inst.Raw)
@@ -125,72 +126,6 @@ func (inst *Instruction) parseInst() bool {
 		return true
 	}
 	return false
-}
-
-func (inst *Instruction) parseDstRegs() {
-	for _, reg := range inst.DstRegs {
-		switch reg.Type {
-		case typeScalarRegister:
-			switch inst.roleSGPR[reg.Index] {
-			case non, dst:
-				inst.roleSGPR[reg.Index] = dst
-			case src, duo:
-				inst.roleSGPR[reg.Index] = duo
-			}
-		case typeVectorRegister:
-			switch inst.roleVGPR[reg.Index] {
-			case non, dst:
-				inst.roleVGPR[reg.Index] = dst
-			case src, duo:
-				inst.roleVGPR[reg.Index] = duo
-			}
-		case typeSpecialRegister:
-			switch inst.roleSPPR[reg.Index] {
-			case non, dst:
-				inst.roleSPPR[reg.Index] = dst
-			case src, duo:
-				inst.roleSPPR[reg.Index] = duo
-			}
-		default:
-			panic("Invalid Register Type")
-		}
-	}
-}
-
-func (inst *Instruction) parseSrcRegs() {
-
-	for _, reg := range inst.SrcRegs {
-		switch reg.Type {
-		case typeScalarRegister:
-			switch inst.roleSGPR[reg.Index] {
-			case non, src:
-				inst.roleSGPR[reg.Index] = src
-			case dst, duo:
-				inst.roleSGPR[reg.Index] = duo
-			}
-		case typeVectorRegister:
-			switch inst.roleVGPR[reg.Index] {
-			case non, src:
-				inst.roleVGPR[reg.Index] = src
-			case dst, duo:
-				inst.roleVGPR[reg.Index] = duo
-			}
-		case typeSpecialRegister:
-			switch inst.roleSPPR[reg.Index] {
-			case non, dst:
-				inst.roleSPPR[reg.Index] = src
-			case src, duo:
-				inst.roleSPPR[reg.Index] = duo
-			}
-		default:
-			panic("Invalid Register Type")
-		}
-	}
-}
-
-func (inst *Instruction) parseRegs() {
-	inst.parseDstRegs()
-	inst.parseSrcRegs()
 }
 
 // NewInstruction returns an instruction
@@ -207,9 +142,6 @@ func NewInstruction(asm string) *Instruction {
 	// Parse assembly to get info
 	inst.parseInst()
 
-	// Parse register info
-	inst.parseRegs()
-
 	// Return
 	return inst
 }
@@ -225,16 +157,6 @@ func (inst *Instruction) isRAW() bool {
 			return true
 		}
 	}
-	return false
-}
-
-func (inst *Instruction) isMemoryInstruction() bool {
-	// Memory instructions are always added to the group
-	key := inst.Text
-	if val, ok := InstsMisc[key]; ok {
-		return val.IsMemInst
-	}
-
 	return false
 }
 
@@ -262,21 +184,7 @@ func (inst *Instruction) Print() {
 	}
 }
 
-// // PrintroleSGPR print scalar register usage as a vector
-// func (inst *Instruction) PrintroleSGPR(max int) {
-// 	for idx := 0; idx < max; idx++ {
-// 		fmt.Print(symbolMap[inst.roleSGPR[idx]])
-// 	}
-// }
-
-// // PrintroleVGPR print vector register usage as a vector
-// func (inst *Instruction) PrintroleVGPR(max int) {
-// 	for idx := 0; idx < max; idx++ {
-// 		fmt.Print(symbolMap[inst.roleVGPR[idx]])
-// 	}
-// }
-
-// IsValidInst checks if instruction is a valid instruction
+// IsValidInst check if the assembly contains a valid instruction
 func IsValidInst(asm string) bool {
 	inputField := strings.FieldsFunc(asm, delimiter)
 	if len(inputField) > 0 {
@@ -287,12 +195,4 @@ func IsValidInst(asm string) bool {
 	}
 
 	return false
-}
-
-// GetType returns the type of an instruction
-func GetType(inst string) string {
-	if val, ok := InstsMisc[inst]; ok {
-		return val.Type
-	}
-	return "Invalid"
 }
