@@ -27,7 +27,9 @@ func Parse(path string) (err error) {
 	}
 
 	k.Analysis()
-	k.PrintInsts()
+	k.GenHint()
+	// k.PrintInsts()
+	k.PrintHint()
 
 	if err := scanner.Err(); err != nil {
 		log.Fatal(err)

@@ -1,6 +1,9 @@
 package amdsidep
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 type InstMisc struct {
 	Type      string // Type of instruction
@@ -25,6 +28,19 @@ func GetInstType(key string) string {
 		return val.Type
 	}
 	return "Invalid"
+}
+
+// IsValidInst check if the assembly contains a valid instruction
+func IsValidInst(asm string) bool {
+	inputField := strings.FieldsFunc(asm, delimiter)
+	if len(inputField) > 0 {
+		inst := inputField[0]
+		if _, ok := InstsMisc[inst]; ok {
+			return true
+		}
+	}
+
+	return false
 }
 
 func IsMemoryInstruction(key string) bool {

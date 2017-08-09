@@ -43,7 +43,7 @@ func (bb *BasicBlock) Add(inst *Instruction) {
 	bb.Instructions = append(bb.Instructions, inst)
 
 	// Sanity check
-	if len(bb.SubBasicBlocks) == 0 {
+	if len(bb.SubBasicBlocks) == 0 || inst.Text == "s_barrier" {
 		sbb := new(SubBasicBlock)
 		bb.SubBasicBlocks = append(bb.SubBasicBlocks, sbb)
 	}
@@ -58,7 +58,7 @@ func (bb *BasicBlock) Add(inst *Instruction) {
 		// Only add when s_waitcnt < 2
 		if sbb.WaitCount < 2 {
 			sbb.Instructions = append(sbb.Instructions, inst)
-			if inst.Text == "s_waitcnt" || inst.Text == "s_barrier" {
+			if inst.Text == "s_waitcnt" {
 				sbb.WaitCount++
 			}
 		} else {
@@ -117,11 +117,83 @@ func (bb *BasicBlock) Analysis() {
 }
 
 func (bb *BasicBlock) GenHint() {
-	// for idxSbb, sbb := range bb.SubBasicBlocks {
-	// 	for _, inst := range sbb.Instructions {
+	for _, sbb := range bb.SubBasicBlocks {
+		// First round, mark s_waitcnt and s_barrier offset to -inst.Offset
+		for _, inst := range sbb.Instructions {
+			if inst.Text == "s_waitcnt" || inst.Text == "s_barrier" {
+				inst.Hint.Offset = -inst.Offset
+			}
+		}
 
-	// 	}
-	// }
+		// Second round, find the 1st s_waitcnt
+		var waitInst *Instruction
+		var waitInstIdx int
+		for idx, inst := range sbb.Instructions {
+			if inst.Text == "s_waitcnt" {
+				waitInst = inst
+				waitInstIdx = idx
+				break
+			}
+		}
+
+		if waitInst == nil {
+			return
+		}
+
+		// Find the 1st dependent instruction
+		var depInst *Instruction
+		for i := waitInstIdx + 1; i < len(sbb.Instructions); i++ {
+			inst := sbb.Instructions[i]
+			if inst.InSameGroup(waitInst) {
+				depInst = inst
+				break
+			}
+		}
+
+		// Find the 1st independent instruction
+		var idpInst *Instruction
+		var idpIdx int
+		for i := waitInstIdx + 1; i < len(sbb.Instructions); i++ {
+			inst := sbb.Instructions[i]
+			if !inst.InSameGroup(waitInst) {
+				idpInst = inst
+				idpIdx = i
+				break
+			}
+		}
+
+		// Update hint
+		if idpInst == nil {
+			return
+		} else {
+			waitInst.Hint.Offset = idpInst.Offset - waitInst.Offset
+			idpInst.Hint.Offset = idpInst.Offset - depInst.Offset
+		}
+
+		// Check the rest to see if there is any independent instructions
+		for i := idpIdx + 1; i < len(sbb.Instructions); i++ {
+			inst := sbb.Instructions[i]
+			if !inst.InSameGroup(waitInst) && inst.Text != "s_waitcnt" {
+				idpInst.Hint.Offset = inst.Offset - idpInst.Offset
+				idpInst = inst
+			}
+		}
+		// The last independent instruction jumps back to the 1st depedent instruction
+		idpInst.Hint.Offset = depInst.Offset - idpInst.Offset
+
+		// The rest dependent instructions
+		depInsts := []*Instruction{}
+		for i := waitInstIdx + 1; i < len(sbb.Instructions); i++ {
+			inst := sbb.Instructions[i]
+			if inst.Hint.Offset == 0 {
+				depInsts = append(depInsts, inst)
+			}
+		}
+		for i := 0; i < len(depInsts)-1; i++ {
+			depInsts[i].Hint.Offset = depInsts[i+1].Offset - depInsts[i].Offset
+		}
+
+	}
 }
 
 func (bb *BasicBlock) Print() {

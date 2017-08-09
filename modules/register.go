@@ -97,6 +97,24 @@ func NewRegister(index int, regType int) *Register {
 	return reg
 }
 
+func NewSpecialRegister(index int) *Register {
+	switch index {
+	case M0Register, SccRegister:
+		return NewRegister(index, typeSpecialRegister)
+	case VccRegister, VcczRegister:
+		return NewRegister(VccRegister, typeSpecialRegister)
+	case ExecRegister, ExeczRegister:
+		return NewRegister(ExecRegister, typeSpecialRegister)
+	case ExecAndSccRegister:
+		return NewRegister(ExecRegister, typeSpecialRegister)
+		return NewRegister(SccRegister, typeSpecialRegister)
+	default:
+		return nil
+	}
+
+	return nil
+}
+
 // IsRegister return true if the string represents register
 func IsRegister(str string) bool {
 	re := regexp.MustCompile(regexRegisters)

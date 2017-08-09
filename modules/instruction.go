@@ -15,7 +15,7 @@ const (
 
 var symbolMap = map[int]string{non: "_", dst: "D", src: "S", duo: "B"}
 
-var regexComment = `\/{2}\s+(?P<offset>[A-F0-9]{8}):\s+(?P<hex>([A-F0-9]{8})\s*([A-F0-9]{8})?)\n`
+var regexComment = `\/{2}\s+(?P<offset>[A-F0-9]{8}):\s+(?P<hex>([A-F0-9]{8})\s*([A-F0-9]{8})?)`
 
 // Instruction contains all field of an instruction
 type Instruction struct {
@@ -35,7 +35,7 @@ type Instruction struct {
 type InstructionHint struct {
 	SBBID   int
 	GroupID []int
-	Offset  int
+	Offset  int64
 }
 
 func delimiter(r rune) bool {
@@ -45,45 +45,15 @@ func delimiter(r rune) bool {
 func (inst *Instruction) getImplicitRegs() {
 	// Get implicit usage of special registers
 	idxSpReg := GetInstMisc(inst.Text).DstSpReg
-	switch idxSpReg {
-	case M0Register, SccRegister:
-		reg := NewRegister(idxSpReg, typeSpecialRegister)
-		inst.DstRegs = append(inst.DstRegs, reg)
-	case VccRegister, VcczRegister:
-		reg := NewRegister(VccRegister, typeSpecialRegister)
-		inst.DstRegs = append(inst.DstRegs, reg)
-	case ExecRegister, ExeczRegister:
-		reg := NewRegister(ExecRegister, typeSpecialRegister)
-		inst.DstRegs = append(inst.DstRegs, reg)
-	case ExecAndSccRegister:
-		reg := NewRegister(ExecRegister, typeSpecialRegister)
-		inst.DstRegs = append(inst.DstRegs, reg)
-		reg = NewRegister(SccRegister, typeSpecialRegister)
-		inst.DstRegs = append(inst.DstRegs, reg)
-	case InvalidRegister, SpRegisterCount:
-		fmt.Println(inst.Raw)
-		panic("Invalid Special Register used in InstsMisc table")
+	spReg := NewSpecialRegister(idxSpReg)
+	if spReg != nil {
+		inst.DstRegs = append(inst.DstRegs, spReg)
 	}
 
 	idxSpReg = GetInstMisc(inst.Text).SrcSpReg
-	switch idxSpReg {
-	case M0Register, SccRegister:
-		reg := NewRegister(idxSpReg, typeSpecialRegister)
-		inst.SrcRegs = append(inst.SrcRegs, reg)
-	case VccRegister, VcczRegister:
-		reg := NewRegister(VccRegister, typeSpecialRegister)
-		inst.SrcRegs = append(inst.SrcRegs, reg)
-	case ExecRegister, ExeczRegister:
-		reg := NewRegister(ExecRegister, typeSpecialRegister)
-		inst.SrcRegs = append(inst.SrcRegs, reg)
-	case ExecAndSccRegister:
-		reg := NewRegister(ExecRegister, typeSpecialRegister)
-		inst.SrcRegs = append(inst.SrcRegs, reg)
-		reg = NewRegister(SccRegister, typeSpecialRegister)
-		inst.SrcRegs = append(inst.SrcRegs, reg)
-	case InvalidRegister, SpRegisterCount:
-		fmt.Println(inst.Raw)
-		panic("Invalid Special Register used in InstsMisc table")
+	spReg = NewSpecialRegister(idxSpReg)
+	if spReg != nil {
+		inst.DstRegs = append(inst.DstRegs, spReg)
 	}
 }
 
@@ -184,13 +154,12 @@ func (inst *Instruction) Print() {
 	}
 }
 
-// IsValidInst check if the assembly contains a valid instruction
-func IsValidInst(asm string) bool {
-	inputField := strings.FieldsFunc(asm, delimiter)
-	if len(inputField) > 0 {
-		inst := inputField[0]
-		if _, ok := InstsMisc[inst]; ok {
-			return true
+func (inst0 *Instruction) InSameGroup(inst1 *Instruction) bool {
+	for _, groupId0 := range inst0.Hint.GroupID {
+		for _, groupId1 := range inst1.Hint.GroupID {
+			if groupId0 == groupId1 {
+				return true
+			}
 		}
 	}
 
