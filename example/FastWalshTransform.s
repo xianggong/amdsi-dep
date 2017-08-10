@@ -1,0 +1,54 @@
+label_0000:
+  s_buffer_load_dword  s0, s[12:15], 0x04                   // 00000000: C2000D04
+  s_buffer_load_dword  s1, s[8:11], 0x04                    // 00000004: C2008904
+  s_waitcnt     lgkmcnt(0)                                  // 00000008: BF8C007F
+  v_cvt_f32_u32  v1, s0                                     // 0000000C: 7E020C00
+  v_rcp_f32     v1, v1                                      // 00000010: 7E025501
+  v_mul_f32     v1, 0x4f800000, v1                          // 00000014: 100202FF 4F800000
+  v_cvt_u32_f32  v1, v1                                     // 0000001C: 7E020F01
+  s_buffer_load_dword  s2, s[8:11], 0x18                    // 00000020: C2010918
+  v_mul_lo_u32  v2, s0, v1                                  // 00000024: D2D20002 02020200
+  v_mul_hi_u32  v3, s0, v1                                  // 0000002C: D2D40003 02020200
+  s_min_u32     s1, s1, 0x0000ffff                          // 00000034: 8381FF01 0000FFFF
+  v_sub_i32     v4, vcc, 0, v2                              // 0000003C: 4C080480
+  v_cmp_ne_i32  s[8:9], v3, 0                               // 00000040: D10A0008 00010103
+  v_mov_b32     v3, s1                                      // 00000048: 7E060201
+  v_cndmask_b32  v2, v4, v2, s[8:9]                         // 0000004C: D2000002 00220504
+  v_mul_i32_i24  v3, s16, v3                                // 00000054: 12060610
+  v_mul_hi_u32  v2, v2, v1                                  // 00000058: D2D40002 02020302
+  v_add_i32     v0, vcc, v0, v3                             // 00000060: 4A000700
+  v_sub_i32     v3, vcc, v1, v2                             // 00000064: 4C060501
+  v_add_i32     v1, vcc, v1, v2                             // 00000068: 4A020501
+  s_waitcnt     lgkmcnt(0)                                  // 0000006C: BF8C007F
+  v_add_i32     v0, vcc, s2, v0                             // 00000070: 4A000002
+  v_cndmask_b32  v1, v1, v3, s[8:9]                         // 00000074: D2000001 00220701
+  v_mul_hi_u32  v1, v1, v0                                  // 0000007C: D2D40001 02020101
+  v_mul_lo_u32  v2, v1, s0                                  // 00000084: D2D20002 02000101
+  v_sub_i32     v3, vcc, v0, v2                             // 0000008C: 4C060500
+  v_cmp_ge_u32  s[2:3], v0, v2                              // 00000090: D18C0002 00020500
+  v_cmp_ge_u32  s[8:9], v3, s0                              // 00000098: D18C0008 00000103
+  s_and_b64     s[8:9], s[2:3], s[8:9]                      // 000000A0: 87880802
+  v_addc_u32    v1, vcc, v1, 0, s[8:9]                      // 000000A4: D2506A01 00210101
+  v_addc_u32    v1, vcc, v1, -1, s[2:3]                     // 000000AC: D2506A01 00098301
+  s_buffer_load_dword  s1, s[12:15], 0x00                   // 000000B4: C2008D00
+  v_mul_lo_i32  v1, s0, v1                                  // 000000B8: D2D60001 02020200
+  v_lshlrev_b32  v2, 1, v1                                  // 000000C0: 34040281
+  v_sub_i32     v0, vcc, v0, v1                             // 000000C4: 4C000300
+  v_add_i32     v0, vcc, v2, v0                             // 000000C8: 4A000102
+  v_add_i32     v1, vcc, s0, v0                             // 000000CC: 4A020000
+  v_lshlrev_b32  v0, 2, v0                                  // 000000D0: 34000082
+  v_lshlrev_b32  v1, 2, v1                                  // 000000D4: 34020282
+  s_waitcnt     lgkmcnt(0)                                  // 000000D8: BF8C007F
+  v_add_i32     v0, vcc, s1, v0                             // 000000DC: 4A000001
+  v_add_i32     v1, vcc, s1, v1                             // 000000E0: 4A020201
+  tbuffer_load_format_x  v2, v0, s[4:7], 0 offen format:[BUF_DATA_FORMAT_32,BUF_NUM_FORMAT_FLOAT] // 000000E4: EBA01000 80010200
+  tbuffer_load_format_x  v3, v1, s[4:7], 0 offen format:[BUF_DATA_FORMAT_32,BUF_NUM_FORMAT_FLOAT] // 000000EC: EBA01000 80010301
+  s_waitcnt     vmcnt(0)                                    // 000000F4: BF8C1F70
+  v_add_f32     v4, v2, v3                                  // 000000F8: 06080702
+  tbuffer_store_format_x  v4, v0, s[4:7], 0 offen format:[BUF_DATA_FORMAT_32,BUF_NUM_FORMAT_FLOAT] // 000000FC: EBA41000 80010400
+  v_sub_f32     v0, v2, v3                                  // 00000104: 08000702
+  tbuffer_store_format_x  v0, v1, s[4:7], 0 offen format:[BUF_DATA_FORMAT_32,BUF_NUM_FORMAT_FLOAT] // 00000108: EBA41000 80010001
+  s_endpgm                                                  // 00000110: BF810000
+
+
+

@@ -21,7 +21,7 @@ func NewKernel(name string) *Kernel {
 // AddInstruction adds an instruction to kernel
 func (k *Kernel) AddInstruction(asm string) {
 	// If input is a label, create an new basic block
-	labelRe := regexp.MustCompile(`label_\d+:`)
+	labelRe := regexp.MustCompile(`label_[0-9A-F]+:`)
 	label := labelRe.FindString(asm)
 	if label != "" {
 		bb := NewBasicBlock(label)

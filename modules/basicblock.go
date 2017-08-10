@@ -167,7 +167,11 @@ func (bb *BasicBlock) GenHint() {
 			return
 		} else {
 			waitInst.Hint.Offset = idpInst.Offset - waitInst.Offset
-			idpInst.Hint.Offset = idpInst.Offset - depInst.Offset
+			if depInst != nil {
+				idpInst.Hint.Offset = idpInst.Offset - depInst.Offset
+			} else {
+				idpInst.Hint.Offset = 0 // FIXME
+			}
 		}
 
 		// Check the rest to see if there is any independent instructions
@@ -179,7 +183,11 @@ func (bb *BasicBlock) GenHint() {
 			}
 		}
 		// The last independent instruction jumps back to the 1st depedent instruction
-		idpInst.Hint.Offset = depInst.Offset - idpInst.Offset
+		if depInst != nil {
+			idpInst.Hint.Offset = depInst.Offset - idpInst.Offset
+		} else {
+			idpInst.Hint.Offset = 0 // FIXME
+		}
 
 		// The rest dependent instructions
 		depInsts := []*Instruction{}

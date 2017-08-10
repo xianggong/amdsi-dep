@@ -146,6 +146,7 @@ var instAsmDstCount = map[string]int{
 	"v_cmp_nle_f32":             1,
 	"v_cmp_neq_f32":             1,
 	"v_cmp_nlt_f32":             1,
+	"v_cmp_ngt_f32":             1,
 	"v_cmp_VOP3_OP16_f64":       1,
 	"v_cmp_f_f64":               1,
 	"v_cmp_lt_i32":              1,
