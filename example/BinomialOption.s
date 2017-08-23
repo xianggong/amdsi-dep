@@ -664,6 +664,3 @@ label_0395:
 label_03AE:
   s_mov_b64     exec, s[8:9]                                // 00000EB8: BEFE0408
   s_endpgm                                                  // 00000EBC: BF810000
-
-
-

@@ -93,6 +93,3 @@ label_0058:
 label_0072:
   s_mov_b64     exec, s[4:5]                                // 000001C8: BEFE0404
   s_endpgm                                                  // 000001CC: BF810000
-
-
-
