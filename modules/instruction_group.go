@@ -1,6 +1,8 @@
 package amdsidep
 
-import "fmt"
+import (
+	"fmt"
+)
 
 var gprActiveStrMap = map[bool]string{
 	true:  "*",
@@ -152,6 +154,7 @@ func (instGroup *InstructionGroup) hazardAnalysis(inst *Instruction) {
 func (instGroup *InstructionGroup) isDependent(inst *Instruction) bool {
 	isDependent := false
 
+	// WAW
 	for _, reg := range inst.DstRegs {
 		regIdx := reg.Index
 		switch reg.Type {
@@ -170,6 +173,7 @@ func (instGroup *InstructionGroup) isDependent(inst *Instruction) bool {
 		}
 	}
 
+	// RAW
 	for _, reg := range inst.SrcRegs {
 		regIdx := reg.Index
 		switch reg.Type {
@@ -279,12 +283,14 @@ func (instGroup *InstructionGroup) Print() {
 	for _, inst := range instGroup.Insts {
 		inst.Print()
 	}
-	// instGroup.PrintDefSGPR()
-	// fmt.Println()
-	// instGroup.PrintUseSGPR()
-	// fmt.Println()
-	// instGroup.PrintDefVGPR()
-	// fmt.Println()
-	// instGroup.PrintUseVGPR()
-	// fmt.Println()
+	instGroup.PrintDefSGPR()
+	fmt.Println()
+	instGroup.PrintUseSGPR()
+	fmt.Println()
+	instGroup.PrintDefVGPR()
+	fmt.Println()
+	instGroup.PrintUseVGPR()
+	fmt.Println()
+
+	fmt.Println("-------------------------------------------------")
 }

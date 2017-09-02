@@ -1,6 +1,10 @@
 package amdsidep
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/golang/glog"
+)
 
 // BasicBlock contains information of a basic block
 type BasicBlock struct {
@@ -72,6 +76,7 @@ func (bb *BasicBlock) Add(inst *Instruction) {
 // Analysis dependency and group
 func (bb *BasicBlock) Analysis() {
 	for idxSbb, sbb := range bb.SubBasicBlocks {
+		sbb.WaitCount = 0
 		for _, inst := range sbb.Instructions {
 			// Update Hint info
 			inst.Hint.SBBID = idxSbb
@@ -81,7 +86,9 @@ func (bb *BasicBlock) Analysis() {
 				instGroup := NewInstructionGroup(bb)
 				instGroup.add(inst)
 				sbb.InstructionGroups = append(sbb.InstructionGroups, instGroup)
-				// fmt.Printf("new: group %d += %s\n\n", instGroup.ID, inst.Raw)
+				if glog.V(2) {
+					fmt.Printf("new: group %d += %s\n", instGroup.ID, inst.Raw)
+				}
 				continue
 			}
 
@@ -90,28 +97,46 @@ func (bb *BasicBlock) Analysis() {
 			for _, instGroup := range sbb.InstructionGroups {
 				if instGroup.CheckThenAdd(inst) {
 					isDependent = true
-					// fmt.Printf("dep: group %d += %s\n\n", instGroup.ID, inst.Raw)
+					if glog.V(2) {
+						fmt.Printf("dep: group %d += %s\n", instGroup.ID, inst.Raw)
+					}
 					continue
 				}
 			}
-
 			if isDependent {
 				continue
 			}
 
-			// Memory instructions
-			if IsMemoryInstruction(inst.Text) {
+			// For memory instructions
+			if inst.Text == "s_waitcnt" {
+				sbb.WaitCount++
 				instGroup := sbb.InstructionGroups[len(sbb.InstructionGroups)-1]
 				instGroup.add(inst)
-				// fmt.Printf("mem: group %d += %s\n\n", instGroup.ID, inst.Raw)
+				if glog.V(2) {
+					fmt.Printf("mem: group %d += %s\n", instGroup.ID, inst.Raw)
+				}
 				continue
+			}
+			// Memory instructions
+			if IsMemoryInstruction(inst.Text) {
+				// No s_waitcnt instruction, just add it
+				if sbb.WaitCount == 0 {
+					instGroup := sbb.InstructionGroups[len(sbb.InstructionGroups)-1]
+					instGroup.add(inst)
+					if glog.V(2) {
+						fmt.Printf("mem: group %d += %s\n", instGroup.ID, inst.Raw)
+					}
+					continue
+				}
 			}
 
 			// Independent instruction, create new group and add it
 			instGroup := NewInstructionGroup(bb)
 			instGroup.add(inst)
 			sbb.InstructionGroups = append(sbb.InstructionGroups, instGroup)
-			// fmt.Printf("idp: group %d += %s\n\n", instGroup.ID, inst.Raw)
+			if glog.V(2) {
+				fmt.Printf("idp: group %d += %s\n", instGroup.ID, inst.Raw)
+			}
 		}
 	}
 }

@@ -68,7 +68,6 @@ func (k *Kernel) PrintInsts() {
 
 func (k *Kernel) PrintHint() {
 	for _, bb := range k.BasicBlocks {
-		// fmt.Println(bb.Label)
 		for _, inst := range bb.Instructions {
 			fmt.Println(inst.Offset, 0, 0, inst.Hint.Offset, 0)
 		}

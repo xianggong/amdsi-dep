@@ -2,7 +2,6 @@ package amdsidep
 
 import (
 	"bufio"
-	"log"
 	"os"
 
 	"github.com/golang/glog"
@@ -28,11 +27,15 @@ func Parse(path string) (err error) {
 
 	k.Analysis()
 	k.GenHint()
-	// k.PrintInsts()
-	k.PrintHint()
+
+	if glog.V(1) {
+		k.PrintInsts()
+	} else {
+		k.PrintHint()
+	}
 
 	if err := scanner.Err(); err != nil {
-		log.Fatal(err)
+		glog.Fatal(err)
 	}
 
 	return nil
