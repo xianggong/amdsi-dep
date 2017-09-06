@@ -25,7 +25,6 @@ func Parse(path string) (err error) {
 		k.AddInstruction(line)
 	}
 
-	k.Analysis()
 	k.GenHint()
 
 	if glog.V(1) {

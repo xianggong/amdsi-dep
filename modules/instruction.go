@@ -33,9 +33,7 @@ type Instruction struct {
 
 // InstructionHint contains hint for the instruction
 type InstructionHint struct {
-	SBBID   int
-	GroupID []int
-	Offset  int64
+	Offset int64
 }
 
 func delimiter(r rune) bool {
@@ -62,7 +60,6 @@ func (inst *Instruction) parseInst() bool {
 	inputField := strings.FieldsFunc(inst.Raw, delimiter)
 	if len(inputField) > 0 {
 		if IsValidInst(inputField[0]) {
-
 			// Get instruction string and type from the first field
 			inst.Text = inputField[0]
 			inst.Type = GetInstType(inst.Text)
@@ -72,14 +69,17 @@ func (inst *Instruction) parseInst() bool {
 				currField := inputField[i]
 				if IsRegister(currField) {
 					regs := ParseRegisters(currField)
-					if i <= GetInstAsmDstCount(inst.Text) {
+					switch GetInstRegRoleByIndex(inst.Text, i-1) {
+					case ROLE_DST:
 						for _, reg := range regs {
 							inst.DstRegs = append(inst.DstRegs, reg)
 						}
-					} else {
+					case ROLE_SRC:
 						for _, reg := range regs {
 							inst.SrcRegs = append(inst.SrcRegs, reg)
 						}
+					case ROLE_IVD:
+						fmt.Println("Invalid register role")
 					}
 				}
 			}
@@ -133,12 +133,12 @@ func (inst *Instruction) isRAW() bool {
 // Print instructions
 func (inst *Instruction) Print() {
 	// fmt.Println(inst.Raw)
-	fmt.Printf("%d ", inst.Hint.SBBID)
-	for _, id := range inst.Hint.GroupID {
-		fmt.Printf("%d ", id)
-	}
+	// fmt.Printf("%d ", inst.Hint.SBBID)
+	// for _, id := range inst.Hint.GroupID {
+	// 	fmt.Printf("%d ", id)
+	// }
 
-	fmt.Print("\t")
+	// fmt.Print("\t")
 	if inst.isRAW() {
 		fmt.Print("T")
 	} else {
@@ -152,16 +152,4 @@ func (inst *Instruction) Print() {
 	for _, reg := range inst.SrcRegs {
 		fmt.Println("\t\tSrc ", reg.Dump())
 	}
-}
-
-func (inst0 *Instruction) InSameGroup(inst1 *Instruction) bool {
-	for _, groupId0 := range inst0.Hint.GroupID {
-		for _, groupId1 := range inst1.Hint.GroupID {
-			if groupId0 == groupId1 {
-				return true
-			}
-		}
-	}
-
-	return false
 }

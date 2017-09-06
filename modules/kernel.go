@@ -38,12 +38,6 @@ func (k *Kernel) AddInstruction(asm string) {
 	}
 }
 
-func (k *Kernel) Analysis() {
-	for _, bb := range k.BasicBlocks {
-		bb.Analysis()
-	}
-}
-
 func (k *Kernel) GenHint() {
 	for _, bb := range k.BasicBlocks {
 		bb.GenHint()

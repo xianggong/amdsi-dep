@@ -23,3 +23,7 @@ func parseNamedGroup(pattern, str string) map[string]string {
 	// Otherwise return nil
 	return nil
 }
+
+func remove(slice []int, s int) []int {
+	return append(slice[:s], slice[s+1:]...)
+}

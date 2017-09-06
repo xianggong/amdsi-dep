@@ -1,7 +1,7 @@
 package amdsidep
 
 import (
-	"fmt"
+	"strconv"
 
 	"github.com/golang/glog"
 )
@@ -11,13 +11,11 @@ type BasicBlock struct {
 	Label              string
 	InstructionGroupID int
 	Instructions       []*Instruction
-	SubBasicBlocks     []*SubBasicBlock
-}
 
-type SubBasicBlock struct {
-	Instructions      []*Instruction
-	InstructionGroups []*InstructionGroup
-	WaitCount         int
+	BoundaryIdx  []int
+	WaitInstsIdx map[int][]int
+	LGKMemIdx    []int
+	VectorMemIdx []int
 }
 
 // NewBasicBlock returns a basic block
@@ -25,13 +23,9 @@ func NewBasicBlock(label string) *BasicBlock {
 	bb := new(BasicBlock)
 	bb.InstructionGroupID = 0
 	bb.Label = label
+	bb.BoundaryIdx = append(bb.BoundaryIdx, 0)
+	bb.WaitInstsIdx = map[int][]int{}
 	return bb
-}
-
-// NewSubBasicBlock returns a sub basic block
-func NewSubBasicBlock() *SubBasicBlock {
-	sbb := new(SubBasicBlock)
-	return sbb
 }
 
 // GetNewInstructionGroupID returns a new instruction group id
@@ -46,189 +40,173 @@ func (bb *BasicBlock) Add(inst *Instruction) {
 	// Add to instruction array
 	bb.Instructions = append(bb.Instructions, inst)
 
-	// Sanity check
-	if len(bb.SubBasicBlocks) == 0 || inst.Text == "s_barrier" {
-		sbb := new(SubBasicBlock)
-		bb.SubBasicBlocks = append(bb.SubBasicBlocks, sbb)
+	if IsScalarMemoryInstruction(inst.Text) {
+		bb.LGKMemIdx = append(bb.LGKMemIdx, len(bb.Instructions)-1)
+	} else if IsLDSMemoryInstruction(inst.Text) {
+		bb.LGKMemIdx = append(bb.LGKMemIdx, len(bb.Instructions)-1)
+	} else if IsVectorMemoryInstruction(inst.Text) {
+		bb.VectorMemIdx = append(bb.VectorMemIdx, len(bb.Instructions)-1)
 	}
 
-	// Always use the last sub basic block
-	sbb := bb.SubBasicBlocks[len(bb.SubBasicBlocks)-1]
+	// Record index of boundary instructions
+	if inst.Text == "s_waitcnt" {
+		waitInstIdx := len(bb.Instructions) - 1
+		lgkmcnt := parseNamedGroup(`lgkmcnt\((?P<count>[0-9]+)\)`, inst.Raw)
+		vmcnt := parseNamedGroup(`vmcnt\((?P<count>[0-9]+)\)`, inst.Raw)
 
-	// Always add computational instructions
-	if !IsMemoryInstruction(inst.Text) {
-		sbb.Instructions = append(sbb.Instructions, inst)
-	} else {
-		// Only add when s_waitcnt < 2
-		if sbb.WaitCount < 2 {
-			sbb.Instructions = append(sbb.Instructions, inst)
-			if inst.Text == "s_waitcnt" {
-				sbb.WaitCount++
+		if len(lgkmcnt) != 0 {
+			count, _ := strconv.Atoi(lgkmcnt["count"])
+			for i := 0; i < len(bb.LGKMemIdx)-count; i++ {
+				bb.WaitInstsIdx[waitInstIdx] = append(bb.WaitInstsIdx[waitInstIdx], bb.LGKMemIdx[i])
 			}
-		} else {
-			newSbb := NewSubBasicBlock()
-			newSbb.Instructions = append(newSbb.Instructions, inst)
-			bb.SubBasicBlocks = append(bb.SubBasicBlocks, newSbb)
+			for i := 0; i < len(bb.LGKMemIdx)-count; i++ {
+				remove(bb.LGKMemIdx, i)
+			}
 		}
+
+		if len(vmcnt) != 0 {
+			count, _ := strconv.Atoi(vmcnt["count"])
+			for i := 0; i < len(bb.VectorMemIdx)-count; i++ {
+				bb.WaitInstsIdx[waitInstIdx] = append(bb.WaitInstsIdx[waitInstIdx], bb.VectorMemIdx[i])
+			}
+			for i := 0; i < len(bb.VectorMemIdx)-count; i++ {
+				remove(bb.VectorMemIdx, i)
+			}
+		}
+
+		bb.BoundaryIdx = append(bb.BoundaryIdx, len(bb.Instructions)-1)
 	}
 }
 
-// Analysis dependency and group
-func (bb *BasicBlock) Analysis() {
-	for idxSbb, sbb := range bb.SubBasicBlocks {
-		sbb.WaitCount = 0
-		for _, inst := range sbb.Instructions {
-			// Update Hint info
-			inst.Hint.SBBID = idxSbb
+// Slide generate hint in the window
+func (bb *BasicBlock) GenHintInWindow(startIdx, boundaryIdx, endIdx int) {
+	glog.V(3).Infoln(startIdx, boundaryIdx, endIdx)
 
-			// If there is no group, create one and add instruction
-			if len(sbb.InstructionGroups) == 0 {
-				instGroup := NewInstructionGroup(bb)
-				instGroup.add(inst)
-				sbb.InstructionGroups = append(sbb.InstructionGroups, instGroup)
-				if glog.V(2) {
-					fmt.Printf("new: group %d += %s\n", instGroup.ID, inst.Raw)
-				}
-				continue
-			}
+	memInstGroupIdx := []int{}
+	lstInstGroupIdx := []int{}
+	idpInstGroupIdx := []int{}
+	tryInstGroupIdx := []int{}
+	depInstGroupIdx := []int{}
 
-			// Check if instruction is dependent on existing instruction group
-			isDependent := false
-			for _, instGroup := range sbb.InstructionGroups {
-				if instGroup.CheckThenAdd(inst) {
-					isDependent = true
-					if glog.V(2) {
-						fmt.Printf("dep: group %d += %s\n", instGroup.ID, inst.Raw)
-					}
-					continue
-				}
-			}
-			if isDependent {
-				continue
-			}
+	memInstGroup := NewInstructionGroup(bb)
+	lstInstGroup := NewInstructionGroup(bb)
+	idpInstGroup := NewInstructionGroup(bb)
+	tryInstGroup := NewInstructionGroup(bb)
+	depInstGroup := NewInstructionGroup(bb)
 
-			// For memory instructions
-			if inst.Text == "s_waitcnt" {
-				sbb.WaitCount++
-				instGroup := sbb.InstructionGroups[len(sbb.InstructionGroups)-1]
-				instGroup.add(inst)
-				if glog.V(2) {
-					fmt.Printf("mem: group %d += %s\n", instGroup.ID, inst.Raw)
-				}
-				continue
-			}
-			// Memory instructions
-			if IsMemoryInstruction(inst.Text) {
-				// No s_waitcnt instruction, just add it
-				if sbb.WaitCount == 0 {
-					instGroup := sbb.InstructionGroups[len(sbb.InstructionGroups)-1]
-					instGroup.add(inst)
-					if glog.V(2) {
-						fmt.Printf("mem: group %d += %s\n", instGroup.ID, inst.Raw)
-					}
-					continue
-				}
-			}
+	glog.V(3).Infoln(boundaryIdx, " is waiting for ", bb.WaitInstsIdx[boundaryIdx])
 
-			// Independent instruction, create new group and add it
-			instGroup := NewInstructionGroup(bb)
-			instGroup.add(inst)
-			sbb.InstructionGroups = append(sbb.InstructionGroups, instGroup)
-			if glog.V(2) {
-				fmt.Printf("idp: group %d += %s\n", instGroup.ID, inst.Raw)
-			}
+	// FIXME: corner case when waiting for memory instruction from previous basic block
+	if len(bb.WaitInstsIdx[boundaryIdx]) == 0 {
+		return
+	}
+
+	memInstGroupIdx = bb.WaitInstsIdx[boundaryIdx]
+	for _, idx := range bb.WaitInstsIdx[boundaryIdx] {
+		inst := bb.Instructions[idx]
+		memInstGroup.add(inst)
+	}
+
+	lstInstGroupIdx = append(lstInstGroupIdx, bb.WaitInstsIdx[boundaryIdx][len(bb.WaitInstsIdx[boundaryIdx])-1])
+	lstInstGroup.add(bb.Instructions[lstInstGroupIdx[len(lstInstGroupIdx)-1]])
+
+	for _, idx := range memInstGroupIdx {
+		glog.V(3).Infoln("Mem insts", idx, bb.Instructions[idx].Raw)
+	}
+	for _, idx := range lstInstGroupIdx {
+		glog.V(3).Infoln("Lst insts", idx, bb.Instructions[idx].Raw)
+	}
+
+	// Add instructions that is independent of memory instruction group
+	for i := boundaryIdx; i < endIdx; i++ {
+		inst := bb.Instructions[i]
+		if inst.Text == "s_endpgm" {
+			depInstGroupIdx = append(depInstGroupIdx, i)
+			glog.V(3).Infoln("Dep Added", i, inst.Raw)
+			depInstGroup.add(inst)
+		} else if !memInstGroup.IsRAW(inst) && !tryInstGroup.IsRAW(inst) && !depInstGroup.IsRAW(inst) {
+			idpInstGroupIdx = append(idpInstGroupIdx, i)
+			glog.V(3).Infoln("Idp Added", i, inst.Raw)
+			idpInstGroup.add(inst)
+		} else if memInstGroup.IsRAW(inst) {
+			depInstGroupIdx = append(depInstGroupIdx, i)
+			glog.V(3).Infoln("Dep Added", i, inst.Raw)
+			depInstGroup.add(inst)
+		} else if !lstInstGroup.IsRAW(inst) && !idpInstGroup.IsRAW(inst) && !depInstGroup.IsRAW(inst) {
+			tryInstGroupIdx = append(tryInstGroupIdx, i)
+			glog.V(3).Infoln("Try Added", i, inst.Raw)
+			tryInstGroup.add(inst)
+		}
+	}
+
+	glog.V(3).Infoln("Mem", memInstGroupIdx)
+	glog.V(3).Infoln("Rlx", lstInstGroupIdx)
+	glog.V(3).Infoln("Idp", idpInstGroupIdx)
+	glog.V(3).Infoln("Try", tryInstGroupIdx)
+	glog.V(3).Infoln("Dep", depInstGroupIdx)
+
+	// Hint links idp instructions
+	if len(idpInstGroupIdx) != 0 {
+		for i := 0; i < len(idpInstGroupIdx)-1; i++ {
+			idxCurr := idpInstGroupIdx[i]
+			idxNext := idpInstGroupIdx[i+1]
+			instCurr := bb.Instructions[idxCurr]
+			instNext := bb.Instructions[idxNext]
+			instCurr.Hint.Offset = instNext.Offset - instCurr.Offset
+		}
+		tailIdpInst := bb.Instructions[idpInstGroupIdx[len(idpInstGroupIdx)-1]]
+		tailIdpInst.Hint.Offset = -tailIdpInst.Offset
+	}
+
+	// Hint links try instructions
+	if len(tryInstGroupIdx) != 0 {
+		for i := 0; i < len(tryInstGroupIdx)-1; i++ {
+			idxCurr := tryInstGroupIdx[i]
+			idxNext := tryInstGroupIdx[i+1]
+			instCurr := bb.Instructions[idxCurr]
+			instNext := bb.Instructions[idxNext]
+			instCurr.Hint.Offset = instNext.Offset - instCurr.Offset
+		}
+		tailTryInst := bb.Instructions[tryInstGroupIdx[len(tryInstGroupIdx)-1]]
+		tailTryInst.Hint.Offset = -tailTryInst.Offset
+	}
+
+	if len(idpInstGroupIdx) != 0 && len(tryInstGroupIdx) != 0 {
+		// Last independant instruction link to the 1st try independant instruction
+		tailIdpInst := bb.Instructions[idpInstGroupIdx[len(idpInstGroupIdx)-1]]
+		headTryInst := bb.Instructions[tryInstGroupIdx[0]]
+		tailIdpInst.Hint.Offset = headTryInst.Offset - tailIdpInst.Offset
+		glog.V(3).Infoln(idpInstGroupIdx)
+		glog.V(3).Infoln("From", tailIdpInst.Raw)
+		glog.V(3).Infoln("  to", headTryInst.Raw)
+	} else if len(idpInstGroupIdx) != 0 && len(tryInstGroupIdx) == 0 {
+		// No try independant instructions, terminate
+		tailIdpInst := bb.Instructions[idpInstGroupIdx[len(idpInstGroupIdx)-1]]
+		tailIdpInst.Hint.Offset = -tailIdpInst.Offset
+		glog.V(3).Infoln(idpInstGroupIdx)
+		glog.V(3).Infoln("Set ", tailIdpInst.Raw)
+	}
+
+	if glog.V(3) {
+		for i := boundaryIdx; i < endIdx; i++ {
+			inst := bb.Instructions[i]
+			inst.Print()
 		}
 	}
 }
 
 func (bb *BasicBlock) GenHint() {
-	for _, sbb := range bb.SubBasicBlocks {
-		// First round, mark s_waitcnt and s_barrier offset to -inst.Offset
-		for _, inst := range sbb.Instructions {
-			if inst.Text == "s_waitcnt" || inst.Text == "s_barrier" {
-				inst.Hint.Offset = -inst.Offset
-			}
-		}
+	bb.BoundaryIdx = append(bb.BoundaryIdx, len(bb.Instructions))
 
-		// Second round, find the 1st s_waitcnt
-		var waitInst *Instruction
-		var waitInstIdx int
-		for idx, inst := range sbb.Instructions {
-			if inst.Text == "s_waitcnt" {
-				waitInst = inst
-				waitInstIdx = idx
-				break
-			}
+	if len(bb.BoundaryIdx) != 0 {
+		for i := 1; i < len(bb.BoundaryIdx)-1; i++ {
+			glog.V(3).Infoln("--------------------------------------------------------")
+			bb.GenHintInWindow(bb.BoundaryIdx[i-1], bb.BoundaryIdx[i], bb.BoundaryIdx[i+1])
+			glog.V(3).Infoln("--------------------------------------------------------")
 		}
-
-		if waitInst == nil {
-			return
-		}
-
-		// Find the 1st dependent instruction
-		var depInst *Instruction
-		for i := waitInstIdx + 1; i < len(sbb.Instructions); i++ {
-			inst := sbb.Instructions[i]
-			if inst.InSameGroup(waitInst) {
-				depInst = inst
-				break
-			}
-		}
-
-		// Find the 1st independent instruction
-		var idpInst *Instruction
-		var idpIdx int
-		for i := waitInstIdx + 1; i < len(sbb.Instructions); i++ {
-			inst := sbb.Instructions[i]
-			if !inst.InSameGroup(waitInst) {
-				idpInst = inst
-				idpIdx = i
-				break
-			}
-		}
-
-		// Update hint
-		if idpInst == nil {
-			return
-		} else {
-			waitInst.Hint.Offset = idpInst.Offset - waitInst.Offset
-			if depInst != nil {
-				idpInst.Hint.Offset = idpInst.Offset - depInst.Offset
-			} else {
-				idpInst.Hint.Offset = 0 // FIXME
-			}
-		}
-
-		// Check the rest to see if there is any independent instructions
-		for i := idpIdx + 1; i < len(sbb.Instructions); i++ {
-			inst := sbb.Instructions[i]
-			if !inst.InSameGroup(waitInst) && inst.Text != "s_waitcnt" {
-				idpInst.Hint.Offset = inst.Offset - idpInst.Offset
-				idpInst = inst
-			}
-		}
-		// The last independent instruction jumps back to the 1st depedent instruction
-		if depInst != nil {
-			idpInst.Hint.Offset = depInst.Offset - idpInst.Offset
-		} else {
-			idpInst.Hint.Offset = 0 // FIXME
-		}
-
-		// The rest dependent instructions
-		depInsts := []*Instruction{}
-		for i := waitInstIdx + 1; i < len(sbb.Instructions); i++ {
-			inst := sbb.Instructions[i]
-			if inst.Hint.Offset == 0 {
-				depInsts = append(depInsts, inst)
-			}
-		}
-		for i := 0; i < len(depInsts)-1; i++ {
-			depInsts[i].Hint.Offset = depInsts[i+1].Offset - depInsts[i].Offset
-		}
-
 	}
 }
 
 func (bb *BasicBlock) Print() {
-	fmt.Println(bb.Label)
+	glog.V(3).Infoln(bb.Label)
 }

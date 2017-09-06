@@ -63,9 +63,6 @@ func (instGroup *InstructionGroup) add(inst *Instruction) {
 	// Add instruction to the group unconditionally
 	instGroup.Insts = append(instGroup.Insts, inst)
 
-	// Add group id
-	inst.Hint.GroupID = append(inst.Hint.GroupID, instGroup.ID)
-
 	// Check hazard
 	instGroup.hazardAnalysis(inst)
 
@@ -196,6 +193,39 @@ func (instGroup *InstructionGroup) isDependent(inst *Instruction) bool {
 	return isDependent
 }
 
+func (instGroup *InstructionGroup) IsRAW(inst *Instruction) bool {
+	isRAW := false
+
+	// RAW
+	for _, reg := range inst.SrcRegs {
+		regIdx := reg.Index
+		switch reg.Type {
+		case typeVectorRegister:
+			if instGroup.DefVGPR[regIdx] {
+				isRAW = true
+			}
+		case typeScalarRegister:
+			if instGroup.DefSGPR[regIdx] {
+				isRAW = true
+			}
+		case typeSpecialRegister:
+			if instGroup.DefSPPR[regIdx] {
+				isRAW = true
+			}
+		}
+	}
+
+	// fmt.Println("-------------------------------------------------")
+	// fmt.Println("IsRaw ?")
+	// instGroup.Print()
+	// inst.Print()
+	// fmt.Println(isRAW)
+	// fmt.Println("-------------------------------------------------")
+
+	// Return
+	return isRAW
+}
+
 // CheckThenAdd check instruction dependency before add
 func (instGroup *InstructionGroup) CheckThenAdd(inst *Instruction) bool {
 	// Add compute instruction if find dependency
@@ -292,5 +322,5 @@ func (instGroup *InstructionGroup) Print() {
 	instGroup.PrintUseVGPR()
 	fmt.Println()
 
-	fmt.Println("-------------------------------------------------")
+	// fmt.Println("-------------------------------------------------")
 }
