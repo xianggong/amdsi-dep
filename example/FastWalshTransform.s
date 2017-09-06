@@ -49,6 +49,3 @@ label_0000:
   v_sub_f32     v0, v2, v3                                  // 00000104: 08000702
   tbuffer_store_format_x  v0, v1, s[4:7], 0 offen format:[BUF_DATA_FORMAT_32,BUF_NUM_FORMAT_FLOAT] // 00000108: EBA41000 80010001
   s_endpgm                                                  // 00000110: BF810000
-
-
-

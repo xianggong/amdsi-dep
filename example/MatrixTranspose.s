@@ -52,6 +52,3 @@ label_0000:
   s_waitcnt     lgkmcnt(0)                                  // 000000EC: BF8C007F
   tbuffer_store_format_x  v2, v0, s[8:11], 0 offen format:[BUF_DATA_FORMAT_32,BUF_NUM_FORMAT_FLOAT] // 000000F0: EBA41000 80020200
   s_endpgm                                                  // 000000F8: BF810000
-
-
-

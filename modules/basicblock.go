@@ -13,6 +13,8 @@ type BasicBlock struct {
 	InstructionGroupID int
 	Instructions       []*Instruction
 
+	IdpInsts []*Instruction
+
 	BoundaryIdx  []int
 	WaitInstsIdx map[int][]int
 	LGKMemIdx    []int
@@ -128,6 +130,7 @@ func (bb *BasicBlock) GenHintInWindow(startIdx, boundaryIdx, endIdx int) {
 			depInstGroupIdx = append(depInstGroupIdx, i)
 			glog.V(3).Infoln("Dep Added", i, inst.Raw)
 			depInstGroup.add(inst)
+			inst.Hint.DepStatus = dep_dep
 			continue
 		}
 
@@ -135,6 +138,7 @@ func (bb *BasicBlock) GenHintInWindow(startIdx, boundaryIdx, endIdx int) {
 			depInstGroupIdx = append(depInstGroupIdx, i)
 			glog.V(3).Infoln("Dep Added", i, inst.Raw)
 			depInstGroup.add(inst)
+			inst.Hint.DepStatus = dep_dep
 			continue
 		}
 
@@ -143,11 +147,16 @@ func (bb *BasicBlock) GenHintInWindow(startIdx, boundaryIdx, endIdx int) {
 				idpInstGroupIdx = append(idpInstGroupIdx, i)
 				glog.V(3).Infoln("Idp Added", i, inst.Raw)
 				idpInstGroup.add(inst)
+				inst.Hint.DepStatus = dep_idp
+				if inst.Text != "s_waitcnt" {
+					bb.IdpInsts = append(bb.IdpInsts, inst)
+				}
 				continue
 			} else {
 				tryInstGroupIdx = append(tryInstGroupIdx, i)
 				glog.V(3).Infoln("Try Added", i, inst.Raw)
 				tryInstGroup.add(inst)
+				inst.Hint.DepStatus = dep_try
 				continue
 			}
 		} else {
@@ -155,11 +164,13 @@ func (bb *BasicBlock) GenHintInWindow(startIdx, boundaryIdx, endIdx int) {
 				tryInstGroupIdx = append(tryInstGroupIdx, i)
 				glog.V(3).Infoln("Try Added", i, inst.Raw)
 				tryInstGroup.add(inst)
+				inst.Hint.DepStatus = dep_try
 				continue
 			} else {
 				depInstGroupIdx = append(depInstGroupIdx, i)
 				glog.V(3).Infoln("Dep Added", i, inst.Raw)
 				depInstGroup.add(inst)
+				inst.Hint.DepStatus = dep_dep
 				continue
 			}
 		}

@@ -3,6 +3,8 @@ package amdsidep
 import (
 	"fmt"
 	"regexp"
+
+	"github.com/golang/glog"
 )
 
 // Kernel represents an kernel binary
@@ -53,7 +55,7 @@ func (k *Kernel) Print() {
 
 func (k *Kernel) PrintInsts() {
 	for _, bb := range k.BasicBlocks {
-		fmt.Println(bb.Label)
+		glog.V(2).Infoln(bb.Label)
 		for _, inst := range bb.Instructions {
 			inst.Print()
 		}

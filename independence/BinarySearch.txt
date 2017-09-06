@@ -1,0 +1,15 @@
+Independant instructions:
+  s_buffer_load_dword  s4, s[8:11], 0x14                    // 00000014: C2020914
+  s_buffer_load_dword  s0, s[8:11], 0x0c                    // 0000001C: C200090C
+  s_buffer_load_dword  s5, s[8:11], 0x04                    // 00000028: C2028904
+  s_load_dwordx4  s[12:15], s[2:3], 0x58                    // 00000048: C0860358
+  s_buffer_load_dword  s0, s[8:11], 0x08                    // 00000058: C2000908
+  s_buffer_load_dword  s1, s[8:11], 0x00                    // 0000005C: C2008900
+  s_and_saveexec_b64  s[6:7], s[6:7]                        // 0000006C: BE862406
+  s_cbranch_execz  label_0032                               // 00000074: BF880014
+  s_mov_b64     vcc, exec                                   // 00000098: BEEA047E
+  s_cbranch_execz  label_0032                               // 000000A0: BF880009
+  s_load_dwordx4  s[8:11], s[2:3], 0x50                     // 000000A4: C0840350
+  v_mov_b32     v2, s1                                      // 000000A8: 7E040201
+  v_mov_b32     v6, 1                                       // 000000B8: 7E0C0281
+Independant instruction count = 13/44 = 29.5 %

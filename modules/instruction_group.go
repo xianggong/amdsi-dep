@@ -18,8 +18,10 @@ type InstructionGroup struct {
 	// Register use and def lookup table
 	UseVGPR [maxNumVGPR]bool
 	DefVGPR [maxNumVGPR]bool
+
 	UseSGPR [maxNumSGPR]bool
 	DefSGPR [maxNumSGPR]bool
+
 	UseSPPR [maxNumSPPR]bool
 	DefSPPR [maxNumSPPR]bool
 }
@@ -66,39 +68,9 @@ func (instGroup *InstructionGroup) add(inst *Instruction) {
 	// Check hazard
 	instGroup.hazardAnalysis(inst)
 
-	// for _, reg := range inst.DstRegs {
-	// 	fmt.Printf("D %s\n", reg.Dump())
-	// }
-
-	// for _, reg := range inst.SrcRegs {
-	// 	fmt.Printf("S %s\n", reg.Dump())
-	// }
-
-	// // Update register use/def lookup table
-
-	// fmt.Println("Before")
-	// instGroup.PrintUseSGPR()
-	// instGroup.PrintDefSGPR()
-	// fmt.Println()
-	// instGroup.PrintUseVGPR()
-	// instGroup.PrintDefVGPR()
-	// fmt.Println()
-	// instGroup.PrintUseSPPR()
-	// instGroup.PrintDefSPPR()
-	// fmt.Println()
-
+	// Update Use/Def table
 	instGroup.updateUseDef(inst)
 
-	// fmt.Println("After")
-	// instGroup.PrintUseSGPR()
-	// instGroup.PrintDefSGPR()
-	// fmt.Println()
-	// instGroup.PrintUseVGPR()
-	// instGroup.PrintDefVGPR()
-	// fmt.Println()
-	// instGroup.PrintUseSPPR()
-	// instGroup.PrintDefSPPR()
-	// fmt.Println()
 }
 
 func (instGroup *InstructionGroup) hazardAnalysis(inst *Instruction) {
@@ -148,8 +120,17 @@ func (instGroup *InstructionGroup) hazardAnalysis(inst *Instruction) {
 }
 
 // Accept an instruction when the instruction has dependency
-func (instGroup *InstructionGroup) isDependent(inst *Instruction) bool {
+func (instGroup *InstructionGroup) IsDependent(inst *Instruction) bool {
 	isDependent := false
+
+	isDependent = instGroup.IsWAW(inst) || instGroup.IsRAW(inst)
+
+	// Return
+	return isDependent
+}
+
+func (instGroup *InstructionGroup) IsWAW(inst *Instruction) bool {
+	isWAW := false
 
 	// WAW
 	for _, reg := range inst.DstRegs {
@@ -157,40 +138,21 @@ func (instGroup *InstructionGroup) isDependent(inst *Instruction) bool {
 		switch reg.Type {
 		case typeVectorRegister:
 			if instGroup.DefVGPR[regIdx] {
-				isDependent = true
+				isWAW = true
 			}
 		case typeScalarRegister:
 			if instGroup.DefSGPR[regIdx] {
-				isDependent = true
+				isWAW = true
 			}
 		case typeSpecialRegister:
 			if instGroup.DefSPPR[regIdx] {
-				isDependent = true
-			}
-		}
-	}
-
-	// RAW
-	for _, reg := range inst.SrcRegs {
-		regIdx := reg.Index
-		switch reg.Type {
-		case typeVectorRegister:
-			if instGroup.DefVGPR[regIdx] {
-				isDependent = true
-			}
-		case typeScalarRegister:
-			if instGroup.DefSGPR[regIdx] {
-				isDependent = true
-			}
-		case typeSpecialRegister:
-			if instGroup.DefSPPR[regIdx] {
-				isDependent = true
+				isWAW = true
 			}
 		}
 	}
 
 	// Return
-	return isDependent
+	return isWAW
 }
 
 func (instGroup *InstructionGroup) IsRAW(inst *Instruction) bool {
@@ -215,25 +177,8 @@ func (instGroup *InstructionGroup) IsRAW(inst *Instruction) bool {
 		}
 	}
 
-	// fmt.Println("-------------------------------------------------")
-	// fmt.Println("IsRaw ?")
-	// instGroup.Print()
-	// inst.Print()
-	// fmt.Println(isRAW)
-	// fmt.Println("-------------------------------------------------")
-
 	// Return
 	return isRAW
-}
-
-// CheckThenAdd check instruction dependency before add
-func (instGroup *InstructionGroup) CheckThenAdd(inst *Instruction) bool {
-	// Add compute instruction if find dependency
-	if instGroup.isDependent(inst) {
-		instGroup.add(inst)
-		return true
-	}
-	return false
 }
 
 // PrintUseSGPR print use of SRegs

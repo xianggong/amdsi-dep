@@ -2,6 +2,7 @@ package amdsidep
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 
 	"github.com/golang/glog"
@@ -27,8 +28,20 @@ func Parse(path string) (err error) {
 
 	k.GenHint()
 
+	k.PrintInsts()
+
 	if glog.V(1) {
-		k.PrintInsts()
+		idpInstcount := 0
+		allInstCount := 0
+		fmt.Println("Independant instructions:")
+		for _, bb := range k.BasicBlocks {
+			for _, inst := range bb.IdpInsts {
+				fmt.Println(inst.Raw)
+			}
+			idpInstcount += len(bb.IdpInsts)
+			allInstCount += len(bb.Instructions)
+		}
+		fmt.Printf("Independant instruction count = %d/%d = %2.1f %%\n", idpInstcount, allInstCount, 100*float64(idpInstcount)/float64(allInstCount))
 	} else {
 		k.PrintHint()
 	}

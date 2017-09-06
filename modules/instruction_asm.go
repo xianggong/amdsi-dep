@@ -160,6 +160,7 @@ var instRegRole = map[string][]int{
 	"v_madmk_f32":               {ROLE_DST, ROLE_SRC, ROLE_LIT, ROLE_SRC},
 	"v_add_i32":                 {ROLE_DST, ROLE_SRC, ROLE_SRC, ROLE_SRC},
 	"v_sub_i32":                 {ROLE_DST, ROLE_SRC, ROLE_SRC, ROLE_SRC},
+	"v_sub_f32":                 {ROLE_DST, ROLE_SRC, ROLE_SRC, ROLE_SRC},
 	"v_subrev_i32":              {ROLE_DST, ROLE_SRC, ROLE_SRC, ROLE_SRC},
 	"v_cvt_pkrtz_f16_f32":       {ROLE_DST, ROLE_SRC, ROLE_SRC, ROLE_SRC},
 	"v_nop":                     {},

@@ -139,6 +139,3 @@ label_009A:
   v_cvt_u32_f32  v1, v1                                     // 00000288: 7E020F01
   tbuffer_store_format_x  v1, v0, s[0:3], 0 offen format:[BUF_DATA_FORMAT_32,BUF_NUM_FORMAT_FLOAT] // 0000028C: EBA41000 80000100
   s_endpgm                                                  // 00000294: BF810000
-
-
-

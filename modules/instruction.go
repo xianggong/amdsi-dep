@@ -1,9 +1,10 @@
 package amdsidep
 
 import (
-	"fmt"
 	"strconv"
 	"strings"
+
+	"github.com/golang/glog"
 )
 
 const (
@@ -13,9 +14,28 @@ const (
 	duo = iota // Destination and Source
 )
 
-var symbolMap = map[int]string{non: "_", dst: "D", src: "S", duo: "B"}
+var symbolMap = map[int]string{
+	non: "_",
+	dst: "D",
+	src: "S",
+	duo: "B",
+}
 
-var regexComment = `\/{2}\s+(?P<offset>[A-F0-9]{8}):\s+(?P<hex>([A-F0-9]{8})\s*([A-F0-9]{8})?)`
+const (
+	dep_non = iota
+	dep_idp = iota
+	dep_try = iota
+	dep_dep = iota
+	dep_ivd = iota
+)
+
+var depStatusMap = map[int]string{
+	dep_non: "non",
+	dep_idp: "idp",
+	dep_try: "try",
+	dep_dep: "dep",
+	dep_ivd: "ivd",
+}
 
 // Instruction contains all field of an instruction
 type Instruction struct {
@@ -33,7 +53,8 @@ type Instruction struct {
 
 // InstructionHint contains hint for the instruction
 type InstructionHint struct {
-	Offset int64
+	Offset    int64
+	DepStatus int
 }
 
 func delimiter(r rune) bool {
@@ -79,9 +100,9 @@ func (inst *Instruction) parseInst() bool {
 							inst.SrcRegs = append(inst.SrcRegs, reg)
 						}
 					case ROLE_IVD:
-						fmt.Println("Invalid register role")
+						glog.V(2).Infoln("Invalid register role")
 					default:
-						fmt.Println("Invalid register role")
+						glog.V(2).Infoln("Invalid register role")
 					}
 				}
 			}
@@ -90,10 +111,15 @@ func (inst *Instruction) parseInst() bool {
 			inst.getImplicitRegs()
 
 			// Get the offset and hex
+			regexComment := `\/{2}\s+(?P<offset>[A-F0-9]{8}):\s+(?P<hex>([A-F0-9]{8})\s*([A-F0-9]{8})?)`
 			comment := parseNamedGroup(regexComment, inst.Raw)
 			offset, _ := strconv.ParseInt(comment["offset"], 16, 32)
 			inst.Offset = offset
 			inst.Hex = comment["hex"]
+
+			// Set hint initial state
+			inst.Hint.DepStatus = dep_non
+			inst.Hint.Offset = 0
 		}
 		return true
 	}
@@ -134,24 +160,12 @@ func (inst *Instruction) isRAW() bool {
 
 // Print instructions
 func (inst *Instruction) Print() {
-	// fmt.Println(inst.Raw)
-	// fmt.Printf("%d ", inst.Hint.SBBID)
-	// for _, id := range inst.Hint.GroupID {
-	// 	fmt.Printf("%d ", id)
-	// }
-
-	// fmt.Print("\t")
-	if inst.isRAW() {
-		fmt.Print("T")
-	} else {
-		fmt.Print("F")
-	}
-	fmt.Printf(" %d %s\n", inst.Hint.Offset, inst.Raw)
-
+	glog.V(2).Infof("%s %d %s\n",
+		depStatusMap[inst.Hint.DepStatus], inst.Hint.Offset, inst.Raw)
 	for _, reg := range inst.DstRegs {
-		fmt.Println("\t\tDst ", reg.Dump())
+		glog.V(2).Infoln("\t\tDst ", reg.Dump())
 	}
 	for _, reg := range inst.SrcRegs {
-		fmt.Println("\t\tSrc ", reg.Dump())
+		glog.V(2).Infoln("\t\tSrc ", reg.Dump())
 	}
 }
