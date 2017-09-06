@@ -1,6 +1,7 @@
 package amdsidep
 
 import (
+	"fmt"
 	"strconv"
 
 	"github.com/golang/glog"
@@ -48,34 +49,34 @@ func (bb *BasicBlock) Add(inst *Instruction) {
 		bb.VectorMemIdx = append(bb.VectorMemIdx, len(bb.Instructions)-1)
 	}
 
+	glog.V(3).Infoln(len(bb.Instructions)-1, inst.Raw)
+	glog.V(3).Infoln("LGKM inst", bb.LGKMemIdx)
+	glog.V(3).Infoln("VMem inst", bb.VectorMemIdx)
+
 	// Record index of boundary instructions
 	if inst.Text == "s_waitcnt" {
 		waitInstIdx := len(bb.Instructions) - 1
+
 		lgkmcnt := parseNamedGroup(`lgkmcnt\((?P<count>[0-9]+)\)`, inst.Raw)
 		vmcnt := parseNamedGroup(`vmcnt\((?P<count>[0-9]+)\)`, inst.Raw)
 
 		if len(lgkmcnt) != 0 {
 			count, _ := strconv.Atoi(lgkmcnt["count"])
-			for i := 0; i < len(bb.LGKMemIdx)-count; i++ {
-				bb.WaitInstsIdx[waitInstIdx] = append(bb.WaitInstsIdx[waitInstIdx], bb.LGKMemIdx[i])
-			}
-			for i := 0; i < len(bb.LGKMemIdx)-count; i++ {
-				remove(bb.LGKMemIdx, i)
-			}
+			bb.WaitInstsIdx[waitInstIdx] = append(bb.WaitInstsIdx[waitInstIdx], bb.LGKMemIdx[0:len(bb.LGKMemIdx)-count]...)
+			bb.LGKMemIdx = bb.LGKMemIdx[len(bb.LGKMemIdx)-count : len(bb.LGKMemIdx)]
 		}
 
 		if len(vmcnt) != 0 {
 			count, _ := strconv.Atoi(vmcnt["count"])
-			for i := 0; i < len(bb.VectorMemIdx)-count; i++ {
-				bb.WaitInstsIdx[waitInstIdx] = append(bb.WaitInstsIdx[waitInstIdx], bb.VectorMemIdx[i])
-			}
-			for i := 0; i < len(bb.VectorMemIdx)-count; i++ {
-				remove(bb.VectorMemIdx, i)
-			}
+			bb.WaitInstsIdx[waitInstIdx] = append(bb.WaitInstsIdx[waitInstIdx], bb.VectorMemIdx[0:len(bb.VectorMemIdx)-count]...)
+			bb.VectorMemIdx = bb.VectorMemIdx[len(bb.VectorMemIdx)-count : len(bb.VectorMemIdx)]
 		}
 
 		bb.BoundaryIdx = append(bb.BoundaryIdx, len(bb.Instructions)-1)
 	}
+
+	glog.V(3).Infoln("LGKM inst", bb.LGKMemIdx)
+	glog.V(3).Infoln("VMem inst", bb.VectorMemIdx)
 }
 
 // Slide generate hint in the window
@@ -107,8 +108,10 @@ func (bb *BasicBlock) GenHintInWindow(startIdx, boundaryIdx, endIdx int) {
 		memInstGroup.add(inst)
 	}
 
-	lstInstGroupIdx = append(lstInstGroupIdx, bb.WaitInstsIdx[boundaryIdx][len(bb.WaitInstsIdx[boundaryIdx])-1])
-	lstInstGroup.add(bb.Instructions[lstInstGroupIdx[len(lstInstGroupIdx)-1]])
+	if len(memInstGroupIdx) > 1 {
+		lstInstGroupIdx = append(lstInstGroupIdx, bb.WaitInstsIdx[boundaryIdx][len(bb.WaitInstsIdx[boundaryIdx])-1])
+		lstInstGroup.add(bb.Instructions[lstInstGroupIdx[len(lstInstGroupIdx)-1]])
+	}
 
 	for _, idx := range memInstGroupIdx {
 		glog.V(3).Infoln("Mem insts", idx, bb.Instructions[idx].Raw)
@@ -120,23 +123,48 @@ func (bb *BasicBlock) GenHintInWindow(startIdx, boundaryIdx, endIdx int) {
 	// Add instructions that is independent of memory instruction group
 	for i := boundaryIdx; i < endIdx; i++ {
 		inst := bb.Instructions[i]
+
 		if inst.Text == "s_endpgm" {
 			depInstGroupIdx = append(depInstGroupIdx, i)
 			glog.V(3).Infoln("Dep Added", i, inst.Raw)
 			depInstGroup.add(inst)
-		} else if !memInstGroup.IsRAW(inst) && !tryInstGroup.IsRAW(inst) && !depInstGroup.IsRAW(inst) {
-			idpInstGroupIdx = append(idpInstGroupIdx, i)
-			glog.V(3).Infoln("Idp Added", i, inst.Raw)
-			idpInstGroup.add(inst)
-		} else if memInstGroup.IsRAW(inst) {
+			continue
+		}
+
+		if depInstGroup.IsRAW(inst) {
 			depInstGroupIdx = append(depInstGroupIdx, i)
 			glog.V(3).Infoln("Dep Added", i, inst.Raw)
 			depInstGroup.add(inst)
-		} else if !lstInstGroup.IsRAW(inst) && !idpInstGroup.IsRAW(inst) && !depInstGroup.IsRAW(inst) {
-			tryInstGroupIdx = append(tryInstGroupIdx, i)
-			glog.V(3).Infoln("Try Added", i, inst.Raw)
-			tryInstGroup.add(inst)
+			continue
 		}
+
+		if !memInstGroup.IsRAW(inst) {
+			if !tryInstGroup.IsRAW(inst) {
+				idpInstGroupIdx = append(idpInstGroupIdx, i)
+				glog.V(3).Infoln("Idp Added", i, inst.Raw)
+				idpInstGroup.add(inst)
+				continue
+			} else {
+				tryInstGroupIdx = append(tryInstGroupIdx, i)
+				glog.V(3).Infoln("Try Added", i, inst.Raw)
+				tryInstGroup.add(inst)
+				continue
+			}
+		} else {
+			if len(lstInstGroup.Insts) != 0 && !lstInstGroup.IsRAW(inst) {
+				tryInstGroupIdx = append(tryInstGroupIdx, i)
+				glog.V(3).Infoln("Try Added", i, inst.Raw)
+				tryInstGroup.add(inst)
+				continue
+			} else {
+				depInstGroupIdx = append(depInstGroupIdx, i)
+				glog.V(3).Infoln("Dep Added", i, inst.Raw)
+				depInstGroup.add(inst)
+				continue
+			}
+		}
+
+		fmt.Println("Invalid dependency analysis on ", inst.Raw)
 	}
 
 	glog.V(3).Infoln("Mem", memInstGroupIdx)
@@ -159,7 +187,7 @@ func (bb *BasicBlock) GenHintInWindow(startIdx, boundaryIdx, endIdx int) {
 	}
 
 	// Hint links try instructions
-	if len(tryInstGroupIdx) != 0 {
+	if len(idpInstGroupIdx) > 1 && len(tryInstGroupIdx) != 0 {
 		for i := 0; i < len(tryInstGroupIdx)-1; i++ {
 			idxCurr := tryInstGroupIdx[i]
 			idxNext := tryInstGroupIdx[i+1]
@@ -171,7 +199,7 @@ func (bb *BasicBlock) GenHintInWindow(startIdx, boundaryIdx, endIdx int) {
 		tailTryInst.Hint.Offset = -tailTryInst.Offset
 	}
 
-	if len(idpInstGroupIdx) != 0 && len(tryInstGroupIdx) != 0 {
+	if len(idpInstGroupIdx) > 1 && len(tryInstGroupIdx) != 0 {
 		// Last independant instruction link to the 1st try independant instruction
 		tailIdpInst := bb.Instructions[idpInstGroupIdx[len(idpInstGroupIdx)-1]]
 		headTryInst := bb.Instructions[tryInstGroupIdx[0]]
@@ -179,7 +207,7 @@ func (bb *BasicBlock) GenHintInWindow(startIdx, boundaryIdx, endIdx int) {
 		glog.V(3).Infoln(idpInstGroupIdx)
 		glog.V(3).Infoln("From", tailIdpInst.Raw)
 		glog.V(3).Infoln("  to", headTryInst.Raw)
-	} else if len(idpInstGroupIdx) != 0 && len(tryInstGroupIdx) == 0 {
+	} else if len(idpInstGroupIdx) > 1 && len(tryInstGroupIdx) == 0 {
 		// No try independant instructions, terminate
 		tailIdpInst := bb.Instructions[idpInstGroupIdx[len(idpInstGroupIdx)-1]]
 		tailIdpInst.Hint.Offset = -tailIdpInst.Offset

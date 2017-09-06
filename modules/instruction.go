@@ -80,6 +80,8 @@ func (inst *Instruction) parseInst() bool {
 						}
 					case ROLE_IVD:
 						fmt.Println("Invalid register role")
+					default:
+						fmt.Println("Invalid register role")
 					}
 				}
 			}
