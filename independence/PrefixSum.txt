@@ -4,11 +4,10 @@ Independant instructions:
   s_buffer_load_dword  s1, s[12:15], 0x0c                   // 0000003C: C2008D0C
   v_add_i32     v2, vcc, s0, v5                             // 00000054: 4A040A00
   s_buffer_load_dword  s2, s[12:15], 0x00                   // 00000058: C2010D00
-  ds_write_b32  v2, v6                                      // 00000060: D8340000 00000602
   s_lshr_b32    s3, s1, 1                                   // 00000068: 90038101
   s_cmp_eq_i32  s3, 0                                       // 0000006C: BF008003
   s_cbranch_scc1  label_003D                                // 00000070: BF850020
   v_add_i32     v4, vcc, 2, v1                              // 00000074: 4A080282
   s_movk_i32    s12, 0x0001                                 // 00000078: B00C0001
   ds_read_b32   v4, v6                                      // 00000198: D8D80000 04000006
-Independant instruction count = 12/104 = 11.5 %
+Independant instruction count = 11/104 = 10.6 %

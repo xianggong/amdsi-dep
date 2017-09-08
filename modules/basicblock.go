@@ -3,6 +3,7 @@ package amdsidep
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/golang/glog"
 )
@@ -126,7 +127,7 @@ func (bb *BasicBlock) GenHintInWindow(startIdx, boundaryIdx, endIdx int) {
 	for i := boundaryIdx; i < endIdx; i++ {
 		inst := bb.Instructions[i]
 
-		if inst.Text == "s_endpgm" {
+		if inst.Text == "s_endpgm" || strings.Contains(inst.Text, "store") || strings.Contains(inst.Text, "write") {
 			depInstGroupIdx = append(depInstGroupIdx, i)
 			glog.V(3).Infoln("Dep Added", i, inst.Raw)
 			depInstGroup.add(inst)

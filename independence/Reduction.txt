@@ -4,7 +4,4 @@ Independant instructions:
   s_lshr_b32    s0, s0, 1                                   // 00000094: 90008100
   s_cmp_eq_i32  s0, 0                                       // 00000098: BF008000
   s_cbranch_scc1  label_0058                                // 0000009C: BF850030
-  ds_write_b32  v2, v1                                      // 00000118: D8340000 00000102
-  ds_write_b32  v3, v6                                      // 00000128: D8340000 00000603
-  ds_write_b32  v4, v1                                      // 00000138: D8340000 00000104
-Independant instruction count = 8/90 = 8.9 %
+Independant instruction count = 5/90 = 5.6 %
