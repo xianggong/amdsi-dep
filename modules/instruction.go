@@ -8,20 +8,6 @@ import (
 )
 
 const (
-	non = iota // No role
-	dst = iota // Destination
-	src = iota // Source
-	duo = iota // Destination and Source
-)
-
-var symbolMap = map[int]string{
-	non: "_",
-	dst: "D",
-	src: "S",
-	duo: "B",
-}
-
-const (
 	dep_non = iota
 	dep_idp = iota
 	dep_try = iota

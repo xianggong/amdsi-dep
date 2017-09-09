@@ -13,11 +13,10 @@ Independant instructions:
   s_cbranch_scc1  label_0066                                // 0000012C: BF85001A
   v_mul_lo_i32  v0, v0, s19                                 // 00000130: D2D60000 02002700
   v_lshlrev_b32  v0, 2, v0                                  // 00000138: 34000082
-  v_add_i32     v0, vcc, s17, v0                            // 0000013C: 4A000011
   s_mov_b32     s0, s19                                     // 00000140: BE800313
   v_mov_b32     v4, 0                                       // 00000144: 7E080280
   s_cmp_eq_i32  s0, 1                                       // 00000184: BF008100
   s_cbranch_scc1  label_0065                                // 00000188: BF850002
   s_mov_b32     s0, s1                                      // 0000018C: BE800301
   s_branch      label_0052                                  // 00000190: BF82FFED
-Independant instruction count = 21/98 = 21.4 %
+Independant instruction count = 20/98 = 20.4 %

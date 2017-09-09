@@ -52,9 +52,9 @@ func (bb *BasicBlock) Add(inst *Instruction) {
 		bb.VectorMemIdx = append(bb.VectorMemIdx, len(bb.Instructions)-1)
 	}
 
-	glog.V(3).Infoln(len(bb.Instructions)-1, inst.Raw)
-	glog.V(3).Infoln("LGKM inst", bb.LGKMemIdx)
-	glog.V(3).Infoln("VMem inst", bb.VectorMemIdx)
+	// glog.V(3).Infoln(len(bb.Instructions)-1, inst.Raw)
+	// glog.V(3).Infoln("LGKM inst", bb.LGKMemIdx)
+	// glog.V(3).Infoln("VMem inst", bb.VectorMemIdx)
 
 	// Record index of boundary instructions
 	if inst.Text == "s_waitcnt" {
@@ -78,8 +78,8 @@ func (bb *BasicBlock) Add(inst *Instruction) {
 		bb.BoundaryIdx = append(bb.BoundaryIdx, len(bb.Instructions)-1)
 	}
 
-	glog.V(3).Infoln("LGKM inst", bb.LGKMemIdx)
-	glog.V(3).Infoln("VMem inst", bb.VectorMemIdx)
+	// glog.V(3).Infoln("LGKM inst", bb.LGKMemIdx)
+	// glog.V(3).Infoln("VMem inst", bb.VectorMemIdx)
 }
 
 // Slide generate hint in the window
@@ -109,6 +109,7 @@ func (bb *BasicBlock) GenHintInWindow(startIdx, boundaryIdx, endIdx int) {
 	for _, idx := range bb.WaitInstsIdx[boundaryIdx] {
 		inst := bb.Instructions[idx]
 		memInstGroup.add(inst)
+		depInstGroup.add(inst)
 	}
 
 	if len(memInstGroupIdx) > 1 {
@@ -122,6 +123,19 @@ func (bb *BasicBlock) GenHintInWindow(startIdx, boundaryIdx, endIdx int) {
 	for _, idx := range lstInstGroupIdx {
 		glog.V(3).Infoln("Lst insts", idx, bb.Instructions[idx].Raw)
 	}
+
+	// 1st pass: add instructions depend on mem instructions
+	for i := startIdx; i < boundaryIdx; i++ {
+		inst := bb.Instructions[i]
+		if memInstGroup.IsDependent(inst) {
+			depInstGroup.add(inst)
+		}
+	}
+
+	// 2nd pass: add
+	// for i := boundaryIdx; i < endIdx; i++ {
+	// 	inst := bb.Instructions[i]
+	// }
 
 	// Add instructions that is independent of memory instruction group
 	for i := boundaryIdx; i < endIdx; i++ {

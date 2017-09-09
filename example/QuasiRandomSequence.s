@@ -1008,6 +1008,3 @@ label_0000:
   v_add_i32     v0, vcc, s1, v0                             // 00001470: 4A000001
   tbuffer_store_format_xyzw  v[5:8], v0, s[8:11], 0 offen format:[BUF_DATA_FORMAT_32_32_32_32,BUF_NUM_FORMAT_FLOAT] // 00001474: EBF71000 80020500
   s_endpgm                                                  // 0000147C: BF810000
-
-
-

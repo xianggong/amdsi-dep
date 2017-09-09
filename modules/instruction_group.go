@@ -65,16 +65,16 @@ func (instGroup *InstructionGroup) add(inst *Instruction) {
 	// Add instruction to the group unconditionally
 	instGroup.Insts = append(instGroup.Insts, inst)
 
-	// Check hazard
-	instGroup.hazardAnalysis(inst)
+	// Update hazard
+	instGroup.updateHazard(inst)
 
 	// Update Use/Def table
 	instGroup.updateUseDef(inst)
 
 }
 
-func (instGroup *InstructionGroup) hazardAnalysis(inst *Instruction) {
-	// WAR or WAW harzard
+func (instGroup *InstructionGroup) updateHazard(inst *Instruction) {
+	// WAR or RAW harzard
 	for _, reg := range inst.DstRegs {
 		idx := reg.Index
 		switch reg.Type {
@@ -121,12 +121,34 @@ func (instGroup *InstructionGroup) hazardAnalysis(inst *Instruction) {
 
 // Accept an instruction when the instruction has dependency
 func (instGroup *InstructionGroup) IsDependent(inst *Instruction) bool {
-	isDependent := false
+	// Return
+	return instGroup.IsWAW(inst) || instGroup.IsRAW(inst) || instGroup.IsWAR(inst)
+}
 
-	isDependent = instGroup.IsWAW(inst) || instGroup.IsRAW(inst)
+func (instGroup *InstructionGroup) IsWAR(inst *Instruction) bool {
+	isWAR := false
+
+	// WAW
+	for _, reg := range inst.DstRegs {
+		regIdx := reg.Index
+		switch reg.Type {
+		case typeVectorRegister:
+			if instGroup.UseVGPR[regIdx] {
+				isWAR = true
+			}
+		case typeScalarRegister:
+			if instGroup.UseSGPR[regIdx] {
+				isWAR = true
+			}
+		case typeSpecialRegister:
+			if instGroup.UseSPPR[regIdx] {
+				isWAR = true
+			}
+		}
+	}
 
 	// Return
-	return isDependent
+	return isWAR
 }
 
 func (instGroup *InstructionGroup) IsWAW(inst *Instruction) bool {

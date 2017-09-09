@@ -3,7 +3,6 @@ Independant instructions:
   v_cndmask_b32  v1, v1, v3, s[6:7]                         // 00000074: D2000001 001A0701
   s_buffer_load_dwordx2  s[4:5], s[8:11], 0x10              // 0000008C: C2420910
   s_and_b64     s[12:13], s[6:7], s[12:13]                  // 000000A4: 878C0C06
-  v_sub_i32     v2, vcc, v0, v2                             // 000000C8: 4C040500
   v_cmp_ne_i32  s[12:13], s0, 0                             // 000000D0: D10A000C 00010000
   s_add_i32     s7, -1, s0                                  // 000000DC: 810700C1
   v_cndmask_b32  v1, -1, v1, s[12:13]                       // 000000E4: D2000001 003202C1
@@ -33,4 +32,4 @@ Independant instructions:
   v_add_i32     v0, vcc, s7, v0                             // 00000280: 4A000007
   v_add_f32     v1, 0.5, v4                                 // 00000284: 060208F0
   v_cvt_u32_f32  v1, v1                                     // 00000288: 7E020F01
-Independant instruction count = 34/134 = 25.4 %
+Independant instruction count = 33/134 = 24.6 %

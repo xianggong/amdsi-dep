@@ -27,4 +27,4 @@ dtl:
 	M2CDISASM=1 m2s --si-disasm ~/Develop/benchmark/m2s-bench-amdsdk-2.5/DCT/DCT_Kernels.bin > detail/DCT.txt
 	M2CDISASM=1 m2s --si-disasm ~/Develop/benchmark/m2s-bench-amdsdk-2.5/FFT/FFT_Kernels.bin > detail/FFT.txt
 	M2CDISASM=1 m2s --si-disasm ~/Develop/benchmark/m2s-bench-amdsdk-2.5/DwtHaar1D/DwtHaar1D_Kernels.bin > detail/DwtHaar1D.txt
-	M2CDISASM=1 m2s --si-disasm ~/Develop/benchmark/m2s-bench-amdsdk-2.5/QuasiRandomSequence/QuasiRandomSequence_Kernels.bin > detail/QuasiRandomSequencema.txt
+	M2CDISASM=1 m2s --si-disasm ~/Develop/benchmark/m2s-bench-amdsdk-2.5/QuasiRandomSequence/QuasiRandomSequence_Kernels.bin > detail/QuasiRandomSequence.txt
