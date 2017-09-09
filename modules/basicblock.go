@@ -109,12 +109,13 @@ func (bb *BasicBlock) GenHintInWindow(startIdx, boundaryIdx, endIdx int) {
 	for _, idx := range bb.WaitInstsIdx[boundaryIdx] {
 		inst := bb.Instructions[idx]
 		memInstGroup.add(inst)
-		depInstGroup.add(inst)
+		// depInstGroup.add(inst)
 	}
 
 	if len(memInstGroupIdx) > 1 {
 		lstInstGroupIdx = append(lstInstGroupIdx, bb.WaitInstsIdx[boundaryIdx][len(bb.WaitInstsIdx[boundaryIdx])-1])
 		lstInstGroup.add(bb.Instructions[lstInstGroupIdx[len(lstInstGroupIdx)-1]])
+		depInstGroup.add(bb.Instructions[lstInstGroupIdx[len(lstInstGroupIdx)-1]])
 	}
 
 	for _, idx := range memInstGroupIdx {
@@ -127,15 +128,10 @@ func (bb *BasicBlock) GenHintInWindow(startIdx, boundaryIdx, endIdx int) {
 	// 1st pass: add instructions depend on mem instructions
 	for i := startIdx; i < boundaryIdx; i++ {
 		inst := bb.Instructions[i]
-		if memInstGroup.IsDependent(inst) {
+		if memInstGroup.IsRAW(inst) {
 			depInstGroup.add(inst)
 		}
 	}
-
-	// 2nd pass: add
-	// for i := boundaryIdx; i < endIdx; i++ {
-	// 	inst := bb.Instructions[i]
-	// }
 
 	// Add instructions that is independent of memory instruction group
 	for i := boundaryIdx; i < endIdx; i++ {
