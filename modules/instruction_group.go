@@ -74,7 +74,7 @@ func (instGroup *InstructionGroup) add(inst *Instruction) {
 }
 
 func (instGroup *InstructionGroup) updateHazard(inst *Instruction) {
-	// WAR or RAW harzard
+	// WAR or RAW hazard
 	for _, reg := range inst.DstRegs {
 		idx := reg.Index
 		switch reg.Type {
@@ -99,7 +99,7 @@ func (instGroup *InstructionGroup) updateHazard(inst *Instruction) {
 		}
 	}
 
-	// RAW harzard
+	// RAW hazard
 	for _, reg := range inst.SrcRegs {
 		idx := reg.Index
 		switch reg.Type {
@@ -201,6 +201,53 @@ func (instGroup *InstructionGroup) IsRAW(inst *Instruction) bool {
 
 	// Return
 	return isRAW
+}
+
+// IsDep considers RAW of all instructions and WAR/WAW of special registers as dependent
+func (instGroup *InstructionGroup) IsDep(inst *Instruction) bool {
+	isDep := false
+
+	// RAW
+	for _, reg := range inst.SrcRegs {
+		regIdx := reg.Index
+		switch reg.Type {
+		case typeVectorRegister:
+			if instGroup.DefVGPR[regIdx] {
+				isDep = true
+			}
+		case typeScalarRegister:
+			if instGroup.DefSGPR[regIdx] {
+				isDep = true
+			}
+		case typeSpecialRegister:
+			if instGroup.DefSPPR[regIdx] {
+				isDep = true
+			}
+		}
+	}
+
+	// WAW and WAR of special register are considered dependent
+	for _, reg := range inst.DstRegs {
+		regIdx := reg.Index
+		switch reg.Type {
+		case typeSpecialRegister:
+			if instGroup.UseSPPR[regIdx] {
+				isDep = true
+			}
+		}
+	}
+	for _, reg := range inst.DstRegs {
+		regIdx := reg.Index
+		switch reg.Type {
+		case typeSpecialRegister:
+			if instGroup.DefSPPR[regIdx] {
+				isDep = true
+			}
+		}
+	}
+
+	// Return
+	return isDep
 }
 
 // PrintUseSGPR print use of SRegs

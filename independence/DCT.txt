@@ -1,6 +1,5 @@
 Independant instructions:
   s_load_dwordx4  s[12:15], s[2:3], 0x50                    // 0000006C: C0860350
-  s_cbranch_scc1  label_0040                                // 00000074: BF850022
   s_load_dwordx4  s[20:23], s[2:3], 0x58                    // 0000009C: C08A0358
   v_mov_b32     v4, 0                                       // 000000A0: 7E080280
   v_mov_b32     v7, v0                                      // 000000A8: 7E0E0300
@@ -19,4 +18,4 @@ Independant instructions:
   s_cbranch_scc1  label_0065                                // 00000188: BF850002
   s_mov_b32     s0, s1                                      // 0000018C: BE800301
   s_branch      label_0052                                  // 00000190: BF82FFED
-Independant instruction count = 20/98 = 20.4 %
+Independant instruction count = 19/98 = 19.4 %

@@ -9,5 +9,4 @@ Independant instructions:
   s_cbranch_scc1  label_003D                                // 00000070: BF850020
   v_add_i32     v4, vcc, 2, v1                              // 00000074: 4A080282
   s_movk_i32    s12, 0x0001                                 // 00000078: B00C0001
-  ds_read_b32   v4, v6                                      // 00000198: D8D80000 04000006
-Independant instruction count = 11/104 = 10.6 %
+Independant instruction count = 10/104 = 9.6 %

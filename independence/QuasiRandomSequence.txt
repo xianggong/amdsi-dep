@@ -103,7 +103,6 @@ Independant instructions:
   v_and_b32     v7, v15, v7                                 // 00000424: 360E0F0F
   s_add_i32     s1, s0, 16                                  // 00000428: 81019000
   v_mov_b32     v24, s2                                     // 0000042C: 7E300202
-  ds_read_b32   v16, v16                                    // 00000430: D8D80000 10000010
   v_mac_f32     v13, s24, v8                                // 00000438: 3E1A1018
   v_add_f32     v8, s24, v11                                // 0000043C: 06101618
   v_mac_f32     v17, s25, v10                               // 00000440: 3E221419
@@ -117,7 +116,6 @@ Independant instructions:
   v_lshrrev_b32  v6, 1, v6                                  // 0000046C: 2C0C0C81
   v_lshrrev_b32  v7, 2, v7                                  // 00000470: 2C0E0E82
   v_mov_b32     v26, s1                                     // 00000474: 7E340201
-  ds_read_b32   v24, v24                                    // 00000478: D8D80000 18000018
   s_add_i32     s1, s0, 28                                  // 00000480: 81019C00
   v_add_f32     v13, s24, v13                               // 00000484: 061A1A18
   v_add_i32     v8, vcc, 0x03000000, v8                     // 00000488: 4A1010FF 03000000
@@ -139,7 +137,6 @@ Independant instructions:
   v_mul_lo_i32  v3, v3, v7                                  // 00000500: D2D60003 02020F03
   v_and_b32     v6, 1, v15                                  // 00000508: 360C1E81
   v_and_b32     v7, v15, v9                                 // 0000050C: 360E130F
-  ds_read_b32   v9, v26                                     // 00000510: D8D80000 0900001A
   v_mov_b32     v26, s1                                     // 00000518: 7E340201
   v_add_i32     v13, vcc, 0x02800000, v13                   // 0000051C: 4A1A1AFF 02800000
   v_cvt_u32_f32  v8, v8                                     // 00000524: 7E100F08
@@ -155,7 +152,6 @@ Independant instructions:
   v_xor_b32     v2, v2, v3                                  // 00000574: 3A040702
   v_mul_lo_i32  v1, v1, v6                                  // 00000578: D2D60001 02020D01
   v_lshrrev_b32  v3, 3, v7                                  // 00000580: 2C060E83
-  ds_read_b32   v6, v26                                     // 00000584: D8D80000 0600001A
   v_cvt_u32_f32  v7, v13                                    // 0000058C: 7E0E0F0D
   v_add_i32     v17, vcc, 0x02000000, v17                   // 00000594: 4A2222FF 02000000
   v_add_f32     v25, s24, v25                               // 0000059C: 06323218
@@ -188,7 +184,6 @@ Independant instructions:
   v_cvt_u32_f32  v17, v17                                   // 00000670: 7E220F11
   v_lshrrev_b32  v21, 5, v25                                // 00000674: 2C2A3285
   v_mov_b32     v16, s1                                     // 000006A4: 7E200201
-  ds_read_b32   v29, v30                                    // 000006A8: D8D80000 1D00001E
   s_add_i32     s1, s0, 44                                  // 000006B0: 8101AC00
   v_add_f32     v30, s24, v34                               // 000006B4: 063C4418
   v_mac_f32     v33, s24, v11                               // 000006C0: 3E421618
@@ -204,7 +199,6 @@ Independant instructions:
   s_add_i32     s1, s0, 56                                  // 0000074C: 8101B800
   v_mov_b32     v11, 0x3c3268fb                             // 00000750: 7E1602FF 3C3268FB
   v_mac_f32     v34, s25, v27                               // 0000075C: 3E443619
-  ds_read_b32   v9, v17                                     // 000007A0: D8D80000 09000011
   v_add_f32     v25, s24, v32                               // 000007B8: 06324018
   s_add_i32     s2, s0, 52                                  // 000007C8: 8102B400
   v_mov_b32     v32, s1                                     // 000007CC: 7E400201
@@ -213,7 +207,6 @@ Independant instructions:
   v_mov_b32     v35, s25                                    // 000007E0: 7E460219
   s_add_i32     s1, s0, 48                                  // 00000840: 8101B000
   v_mov_b32     v26, s2                                     // 00000844: 7E340202
-  ds_read_b32   v28, v32                                    // 00000848: D8D80000 1C000020
   v_add_f32     v11, s24, v34                               // 00000854: 06164418
   v_mac_f32     v35, s25, v27                               // 00000858: 3E463619
   v_mov_b32     v25, s1                                     // 000008B0: 7E320201
@@ -550,7 +543,6 @@ Independant instructions:
   v_xor_b32     v1, v1, v23                                 // 000011BC: 3A022F01
   v_lshrrev_b32  v13, 24, v13                               // 000011C0: 2C1A1A98
   v_and_b32     v9, v15, v9                                 // 000011C4: 3612130F
-  ds_read_b32   v23, v24                                    // 000011C8: D8D80000 17000018
   v_mov_b32     v24, s0                                     // 000011D0: 7E300200
   v_add_i32     v25, vcc, 0x0e800000, v30                   // 000011D4: 4A323CFF 0E800000
   v_cvt_u32_f32  v27, v27                                   // 000011DC: 7E360F1B
@@ -562,7 +554,6 @@ Independant instructions:
   v_lshrrev_b32  v10, 27, v16                               // 00001210: 2C14209B
   v_lshrrev_b32  v16, 27, v21                               // 00001220: 2C202A9B
   v_lshrrev_b32  v9, 27, v9                                 // 00001230: 2C12129B
-  ds_read_b32   v18, v24                                    // 00001234: D8D80000 12000018
   v_and_b32     v20, v5, v27                                // 00001240: 36283705
   v_add_i32     v21, vcc, 0x0e000000, v30                   // 00001244: 4A2A3CFF 0E000000
   v_add_f32     v22, s6, v34                                // 0000124C: 062C4406
@@ -587,4 +578,4 @@ Independant instructions:
   v_lshrrev_b32  v9, 31, v9                                 // 000013C4: 2C12129F
   v_mov_b32     v13, 0x2f800000                             // 000013D0: 7E1A02FF 2F800000
   s_buffer_load_dword  s1, s[20:23], 0x00                   // 000013DC: C2009500
-Independant instruction count = 588/1009 = 58.3 %
+Independant instruction count = 579/1009 = 57.4 %

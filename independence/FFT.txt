@@ -1,21 +1,14 @@
 Independant instructions:
   s_buffer_load_dword  s0, s[8:11], 0x00                    // 0000002C: C2000900
-  s_movk_i32    s1, 0xfc00                                  // 00000044: B001FC00
   s_buffer_load_dword  s4, s[8:11], 0x04                    // 00000048: C2020904
   s_load_dwordx4  s[8:11], s[2:3], 0x58                     // 00000084: C0840358
   s_load_dwordx4  s[0:3], s[2:3], 0x50                      // 00000098: C0800350
   v_mov_b32     v43, 0x00000200                             // 000000EC: 7E5602FF 00000200
-  v_cmp_gt_i32  s[4:5], v3, v43                             // 000000F8: D1080004 00025703
   v_mov_b32     v45, 0xfffffc00                             // 00000100: 7E5A02FF FFFFFC00
-  v_cndmask_b32  v47, 0, v45, s[4:5]                        // 00000114: D200002F 00125A80
-  v_cndmask_b32  v49, 0, v45, s[6:7]                        // 00000128: D2000031 001A5A80
   v_lshlrev_b32  v50, 3, v1                                 // 00000134: 34640283
   v_mov_b32     v51, 0x00000200                             // 00000138: 7E6602FF 00000200
-  v_cndmask_b32  v43, 0, v45, s[4:5]                        // 00000148: D200002B 00125A80
   v_mov_b32     v49, 0xbbc90fdb                             // 00000158: 7E6202FF BBC90FDB
-  v_cmp_gt_i32  s[4:5], v50, v51                            // 00000164: D1080004 00026732
   v_mov_b32     v53, 0xfffffc00                             // 0000016C: 7E6A02FF FFFFFC00
-  v_cndmask_b32  v45, 0, v45, s[6:7]                        // 00000174: D200002D 001A5A80
   v_mov_b32     v47, 0x3e22f983                             // 00000188: 7E5E02FF 3E22F983
   v_lshrrev_b32  v54, 3, v1                                 // 00000190: 2C6C0283
   v_add_i32     v57, vcc, 4, v50                            // 000001A4: 4A726484
@@ -55,9 +48,7 @@ Independant instructions:
   v_add_f32     v23, v14, v18                               // 00000280: 062E250E
   v_add_f32     v70, v22, v26                               // 00000284: 068C3516
   v_add_f32     v71, v65, v66                               // 00000288: 068E8541
-  v_cmp_gt_i32  s[4:5], v68, v69                            // 00000290: D1080004 00028B44
   v_mov_b32     v73, 0xfffffc00                             // 00000298: 7E9202FF FFFFFC00
-  v_cndmask_b32  v53, 0, v53, s[6:7]                        // 000002A0: D2000035 001A6A80
   v_cvt_f32_i32  v52, v52                                   // 000002AC: 7E680B34
   v_mul_f32     v50, v64, v50                               // 000002B0: 10646540
   v_mov_b32     v57, 0x3e22f983                             // 000002B4: 7E7202FF 3E22F983
@@ -241,22 +232,6 @@ Independant instructions:
   v_add_f32     v105, v100, v104                            // 00000A8C: 06D2D164
   v_cos_f32     v106, v47                                   // 00000A90: 7ED46D2F
   v_sin_f32     v47, v47                                    // 00000A94: 7E5E6B2F
-  ds_read_b32   v107, v74                                   // 00000A98: D8D80000 6B00004A
-  ds_read_b32   v108, v75                                   // 00000AA0: D8D80000 6C00004B
-  ds_read_b32   v109, v76                                   // 00000AA8: D8D80000 6D00004C
-  ds_read_b32   v110, v77                                   // 00000AB0: D8D80000 6E00004D
-  ds_read_b32   v111, v78                                   // 00000AB8: D8D80000 6F00004E
-  ds_read_b32   v112, v79                                   // 00000AC0: D8D80000 7000004F
-  ds_read_b32   v113, v81                                   // 00000AC8: D8D80000 71000051
-  ds_read_b32   v114, v82                                   // 00000AD0: D8D80000 72000052
-  ds_read_b32   v115, v83                                   // 00000AD8: D8D80000 73000053
-  ds_read_b32   v116, v86                                   // 00000AE0: D8D80000 74000056
-  ds_read_b32   v117, v87                                   // 00000AE8: D8D80000 75000057
-  ds_read_b32   v118, v88                                   // 00000AF0: D8D80000 76000058
-  ds_read_b32   v119, v89                                   // 00000AF8: D8D80000 77000059
-  ds_read_b32   v120, v90                                   // 00000B00: D8D80000 7800005A
-  ds_read_b32   v121, v91                                   // 00000B08: D8D80000 7900005B
-  ds_read_b32   v122, v92                                   // 00000B10: D8D80000 7A00005C
   v_cos_f32     v123, v49                                   // 00000B18: 7EF66D31
   v_sin_f32     v49, v49                                    // 00000B1C: 7E626B31
   v_cos_f32     v124, v93                                   // 00000B20: 7EF86D5D
@@ -282,22 +257,6 @@ Independant instructions:
   v_mac_f32     v20, v49, v95                               // 00000D90: 3E28BF31
   s_barrier                                                 // 00000DF4: BF8A0000
   v_and_b32     v11, 0x000000f0, v3                         // 00000DF8: 361606FF 000000F0
-  ds_read_b32   v15, v15                                    // 00000E14: D8D80000 0F00000F
-  ds_read_b32   v16, v16                                    // 00000E1C: D8D80000 10000010
-  ds_read_b32   v17, v17                                    // 00000E24: D8D80000 11000011
-  ds_read_b32   v18, v34                                    // 00000E2C: D8D80000 12000022
-  ds_read_b32   v19, v35                                    // 00000E34: D8D80000 13000023
-  ds_read_b32   v20, v36                                    // 00000E3C: D8D80000 14000024
-  ds_read_b32   v21, v37                                    // 00000E44: D8D80000 15000025
-  ds_read_b32   v22, v38                                    // 00000E4C: D8D80000 16000026
-  ds_read_b32   v23, v39                                    // 00000E54: D8D80000 17000027
-  ds_read_b32   v24, v40                                    // 00000E5C: D8D80000 18000028
-  ds_read_b32   v25, v41                                    // 00000E64: D8D80000 19000029
-  ds_read_b32   v26, v43                                    // 00000E6C: D8D80000 1A00002B
-  ds_read_b32   v27, v44                                    // 00000E74: D8D80000 1B00002C
-  ds_read_b32   v14, v14                                    // 00000E7C: D8D80000 0E00000E
-  ds_read_b32   v28, v45                                    // 00000E84: D8D80000 1C00002D
-  ds_read_b32   v29, v46                                    // 00000E8C: D8D80000 1D00002E
   v_add_f32     v36, v15, v19                               // 00000F1C: 0648270F
   v_add_f32     v40, v23, v27                               // 00000F34: 06503717
   v_or_b32      v12, v12, v30                               // 00000F38: 38183D0C
@@ -307,22 +266,6 @@ Independant instructions:
   v_add_f32     v41, v36, v40                               // 00000F50: 06525124
   v_cos_f32     v42, v12                                    // 00000F54: 7E546D0C
   v_sin_f32     v12, v12                                    // 00000F58: 7E186B0C
-  ds_read_b32   v43, v74                                    // 00000F5C: D8D80000 2B00004A
-  ds_read_b32   v44, v75                                    // 00000F64: D8D80000 2C00004B
-  ds_read_b32   v45, v76                                    // 00000F6C: D8D80000 2D00004C
-  ds_read_b32   v46, v77                                    // 00000F74: D8D80000 2E00004D
-  ds_read_b32   v47, v78                                    // 00000F7C: D8D80000 2F00004E
-  ds_read_b32   v48, v79                                    // 00000F84: D8D80000 3000004F
-  ds_read_b32   v49, v81                                    // 00000F8C: D8D80000 31000051
-  ds_read_b32   v50, v82                                    // 00000F94: D8D80000 32000052
-  ds_read_b32   v51, v83                                    // 00000F9C: D8D80000 33000053
-  ds_read_b32   v52, v86                                    // 00000FA4: D8D80000 34000056
-  ds_read_b32   v53, v87                                    // 00000FAC: D8D80000 35000057
-  ds_read_b32   v54, v88                                    // 00000FB4: D8D80000 36000058
-  ds_read_b32   v55, v89                                    // 00000FBC: D8D80000 37000059
-  ds_read_b32   v56, v90                                    // 00000FC4: D8D80000 3800005A
-  ds_read_b32   v57, v91                                    // 00000FCC: D8D80000 3900005B
-  ds_read_b32   v58, v92                                    // 00000FD4: D8D80000 3A00005C
   v_cos_f32     v59, v13                                    // 00000FDC: 7E766D0D
   v_sin_f32     v13, v13                                    // 00000FE0: 7E1A6B0D
   v_cos_f32     v60, v11                                    // 00000FE4: 7E786D0B
@@ -363,22 +306,6 @@ Independant instructions:
   v_add_f32     v57, v52, v56                               // 00001630: 06727134
   v_cos_f32     v58, v28                                    // 00001634: 7E746D1C
   v_sin_f32     v28, v28                                    // 00001638: 7E386B1C
-  ds_read_b32   v31, v31                                    // 0000163C: D8D80000 1F00001F
-  ds_read_b32   v32, v32                                    // 00001644: D8D80000 20000020
-  ds_read_b32   v33, v33                                    // 0000164C: D8D80000 21000021
-  ds_read_b32   v34, v34                                    // 00001654: D8D80000 22000022
-  ds_read_b32   v35, v35                                    // 0000165C: D8D80000 23000023
-  ds_read_b32   v36, v36                                    // 00001664: D8D80000 24000024
-  ds_read_b32   v37, v37                                    // 0000166C: D8D80000 25000025
-  ds_read_b32   v38, v38                                    // 00001674: D8D80000 26000026
-  ds_read_b32   v39, v39                                    // 0000167C: D8D80000 27000027
-  ds_read_b32   v40, v40                                    // 00001684: D8D80000 28000028
-  ds_read_b32   v41, v41                                    // 0000168C: D8D80000 29000029
-  ds_read_b32   v42, v42                                    // 00001694: D8D80000 2A00002A
-  ds_read_b32   v43, v43                                    // 0000169C: D8D80000 2B00002B
-  ds_read_b32   v44, v44                                    // 000016A4: D8D80000 2C00002C
-  ds_read_b32   v45, v45                                    // 000016AC: D8D80000 2D00002D
-  ds_read_b32   v11, v11                                    // 000016B4: D8D80000 0B00000B
   v_cos_f32     v59, v29                                    // 000016BC: 7E766D1D
   v_sin_f32     v29, v29                                    // 000016C0: 7E3A6B1D
   v_cos_f32     v60, v27                                    // 000016C4: 7E786D1B
@@ -404,7 +331,6 @@ Independant instructions:
   v_or_b32      v0, v0, v1                                  // 00001A9C: 38000300
   v_lshlrev_b32  v0, 2, v0                                  // 00001AA8: 34000082
   s_barrier                                                 // 00001AB0: BF8A0000
-  ds_read_b32   v0, v0                                      // 00001C10: D8D80000 00000000
   v_add_f32     v43, v1, v13                                // 00001CBC: 06561B01
   v_add_f32     v47, v17, v21                               // 00001CD4: 065E2B11
   v_add_f32     v48, v40, v44                               // 00001CD8: 06605928
@@ -417,4 +343,4 @@ Independant instructions:
   v_subrev_f32  v12, v12, v16                               // 00001D94: 0A18210C
   v_subrev_f32  v11, v11, v15                               // 00001D98: 0A161F0B
   v_subrev_f32  v1, v1, v13                                 // 00001D9C: 0A021B01
-Independant instruction count = 418/1316 = 31.8 %
+Independant instruction count = 344/1316 = 26.1 %

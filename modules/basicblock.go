@@ -109,7 +109,6 @@ func (bb *BasicBlock) GenHintInWindow(startIdx, boundaryIdx, endIdx int) {
 	for _, idx := range bb.WaitInstsIdx[boundaryIdx] {
 		inst := bb.Instructions[idx]
 		memInstGroup.add(inst)
-		// depInstGroup.add(inst)
 	}
 
 	if len(memInstGroupIdx) > 1 {
@@ -145,7 +144,7 @@ func (bb *BasicBlock) GenHintInWindow(startIdx, boundaryIdx, endIdx int) {
 			continue
 		}
 
-		if depInstGroup.IsRAW(inst) {
+		if depInstGroup.IsDep(inst) {
 			depInstGroupIdx = append(depInstGroupIdx, i)
 			glog.V(3).Infoln("Dep Added", i, inst.Raw)
 			depInstGroup.add(inst)
@@ -154,7 +153,7 @@ func (bb *BasicBlock) GenHintInWindow(startIdx, boundaryIdx, endIdx int) {
 		}
 
 		if !memInstGroup.IsRAW(inst) {
-			if !tryInstGroup.IsRAW(inst) {
+			if !tryInstGroup.IsDep(inst) {
 				idpInstGroupIdx = append(idpInstGroupIdx, i)
 				glog.V(3).Infoln("Idp Added", i, inst.Raw)
 				idpInstGroup.add(inst)

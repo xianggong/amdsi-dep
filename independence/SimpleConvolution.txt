@@ -1,21 +1,11 @@
 Independant instructions:
   s_buffer_load_dword  s4, s[4:7], 0x18                     // 00000020: C2020518
-  v_cndmask_b32  v1, v1, v3, s[6:7]                         // 00000074: D2000001 001A0701
   s_buffer_load_dwordx2  s[4:5], s[8:11], 0x10              // 0000008C: C2420910
   s_and_b64     s[12:13], s[6:7], s[12:13]                  // 000000A4: 878C0C06
-  v_cmp_ne_i32  s[12:13], s0, 0                             // 000000D0: D10A000C 00010000
-  s_add_i32     s7, -1, s0                                  // 000000DC: 810700C1
-  v_cndmask_b32  v1, -1, v1, s[12:13]                       // 000000E4: D2000001 003202C1
-  v_mov_b32     v5, s7                                      // 000000FC: 7E0A0207
   s_buffer_load_dword  s7, s[8:11], 0x00                    // 00000114: C2038900
   s_buffer_load_dword  s12, s[8:11], 0x04                   // 00000118: C2060904
   s_buffer_load_dword  s8, s[8:11], 0x08                    // 0000011C: C2040908
   s_mov_b64     s[16:17], exec                              // 00000130: BE90047E
-  s_andn2_b64   exec, s[16:17], s[10:11]                    // 00000134: 8AFE0A10
-  s_cbranch_execz  label_009A                               // 0000013C: BF88004A
-  s_add_i32     s1, -1, s1                                  // 00000164: 810101C1
-  v_mov_b32     v4, s1                                      // 00000170: 7E080201
-  v_cndmask_b32  v5, 0, v9, s[10:11]                        // 0000019C: D2000005 002A1280
   s_lshl_b32    s0, s0, 2                                   // 000001A8: 8F008200
   s_lshl_b32    s1, s4, 2                                   // 000001AC: 8F018204
   s_load_dwordx4  s[8:11], s[2:3], 0x58                     // 000001B0: C0840358
@@ -32,4 +22,4 @@ Independant instructions:
   v_add_i32     v0, vcc, s7, v0                             // 00000280: 4A000007
   v_add_f32     v1, 0.5, v4                                 // 00000284: 060208F0
   v_cvt_u32_f32  v1, v1                                     // 00000288: 7E020F01
-Independant instruction count = 33/134 = 24.6 %
+Independant instruction count = 23/134 = 17.2 %

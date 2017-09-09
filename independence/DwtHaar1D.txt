@@ -14,8 +14,7 @@ Independant instructions:
   s_buffer_load_dword  s7, s[8:11], 0x14                    // 00000090: C2038914
   s_buffer_load_dword  s12, s[8:11], 0x18                   // 00000094: C2060918
   s_buffer_load_dword  s8, s[8:11], 0x1c                    // 00000098: C204091C
-  s_cbranch_scc0  label_0042                                // 000000B0: BF840015
   s_mov_b32     s9, 0x6f800000                              // 000000BC: BE8903FF 6F800000
   v_mov_b32     v5, 0x2f800000                              // 000000CC: 7E0A02FF 2F800000
   v_lshlrev_b32  v6, 3, v0                                  // 000000E4: 340C0083
-Independant instruction count = 19/117 = 16.2 %
+Independant instruction count = 18/117 = 15.4 %

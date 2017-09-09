@@ -1,8 +1,7 @@
 Independant instructions:
   s_buffer_load_dword  s3, s[12:15], 0x00                   // 00000038: C2018D00
   s_buffer_load_dword  s0, s[12:15], 0x10                   // 0000007C: C2000D10
-  s_lshl_b32    s1, 1, s2                                   // 00000080: 8F010281
   v_and_b32     v0, s1, v0                                  // 0000008C: 36000001
   v_cmp_eq_i32  vcc, 0, v0                                  // 00000090: 7D040080
   v_cmp_eq_i32  vcc, 0, v0                                  // 000000AC: 7D040080
-Independant instruction count = 6/45 = 13.3 %
+Independant instruction count = 5/45 = 11.1 %

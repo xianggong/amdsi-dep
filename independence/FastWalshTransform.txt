@@ -1,5 +1,4 @@
 Independant instructions:
   s_buffer_load_dword  s2, s[8:11], 0x18                    // 00000020: C2010918
-  v_cndmask_b32  v1, v1, v3, s[8:9]                         // 00000074: D2000001 00220701
   s_buffer_load_dword  s1, s[12:15], 0x00                   // 000000B4: C2008D00
-Independant instruction count = 3/50 = 6.0 %
+Independant instruction count = 2/50 = 4.0 %
