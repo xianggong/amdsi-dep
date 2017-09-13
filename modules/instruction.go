@@ -23,6 +23,19 @@ var depStatusMap = map[int]string{
 	dep_ivd: "ivd",
 }
 
+const (
+	role_invalid_inst = iota
+	role_regular_inst = iota
+	role_long_latency = iota
+	role_preexec_cand = iota
+)
+
+var roleMap = map[int]string{
+	role_regular_inst: "_",
+	role_long_latency: "M",
+	role_preexec_cand: "P",
+}
+
 // Instruction contains all field of an instruction
 type Instruction struct {
 	Type   string
@@ -41,6 +54,7 @@ type Instruction struct {
 type InstructionHint struct {
 	Offset    int64
 	DepStatus int
+	Role      int
 }
 
 func delimiter(r rune) bool {

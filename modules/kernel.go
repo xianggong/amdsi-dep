@@ -85,3 +85,20 @@ func (k *Kernel) PrintHint() {
 		}
 	}
 }
+
+func (k *Kernel) PrintHeatmap() {
+	// count := 0
+	// for _, bb := range k.BasicBlocks {
+	// 	count += len(bb.Instructions)
+	// }
+	// for i := 0; i < count; i++ {
+	// 	fmt.Printf("%d", i)
+	// 	if i < count-1 {
+	// 		fmt.Printf(",")
+	// 	}
+	// }
+	// fmt.Println()
+	for _, bb := range k.BasicBlocks {
+		bb.PrintHeatmap()
+	}
+}

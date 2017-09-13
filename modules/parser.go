@@ -7,8 +7,15 @@ import (
 	"github.com/golang/glog"
 )
 
+const (
+	MODE_IDP  = iota
+	MODE_ALL  = iota
+	MODE_HEAT = iota
+	MODE_HINT = iota
+)
+
 // Parse input file line by line
-func Parse(path string) (err error) {
+func Parse(path string, mode int) (err error) {
 	// Open file
 	file, err := os.Open(path)
 	if err != nil {
@@ -24,19 +31,25 @@ func Parse(path string) (err error) {
 		line := scanner.Text()
 		k.AddInstruction(line)
 	}
-
-	k.GenHint()
-
-	if glog.V(1) {
-		k.PrintIdpAnalysis()
-	} else if glog.V(2) {
-		k.PrintInsts()
-	} else {
-		k.PrintHint()
-	}
-
 	if err := scanner.Err(); err != nil {
 		glog.Fatal(err)
+	}
+
+	// Generate hint
+	k.GenHint()
+
+	// Output accordingly
+	switch mode {
+	case MODE_IDP:
+		k.PrintIdpAnalysis()
+	case MODE_ALL:
+		k.PrintInsts()
+	case MODE_HEAT:
+		k.PrintHeatmap()
+	case MODE_HINT:
+		k.PrintHint()
+	default:
+		k.PrintHint()
 	}
 
 	return nil

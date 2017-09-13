@@ -16,6 +16,8 @@ type BasicBlock struct {
 
 	IdpInsts []*Instruction
 
+	Role []string
+
 	BoundaryIdx  []int
 	WaitInstsIdx map[int][]int
 	LGKMemIdx    []int
@@ -108,6 +110,7 @@ func (bb *BasicBlock) GenHintInWindow(startIdx, boundaryIdx, endIdx int) {
 	memInstGroupIdx = bb.WaitInstsIdx[boundaryIdx]
 	for _, idx := range bb.WaitInstsIdx[boundaryIdx] {
 		inst := bb.Instructions[idx]
+		inst.Hint.Role = role_long_latency
 		memInstGroup.add(inst)
 	}
 
@@ -115,6 +118,21 @@ func (bb *BasicBlock) GenHintInWindow(startIdx, boundaryIdx, endIdx int) {
 		lstInstGroupIdx = append(lstInstGroupIdx, bb.WaitInstsIdx[boundaryIdx][len(bb.WaitInstsIdx[boundaryIdx])-1])
 		lstInstGroup.add(bb.Instructions[lstInstGroupIdx[len(lstInstGroupIdx)-1]])
 		depInstGroup.add(bb.Instructions[lstInstGroupIdx[len(lstInstGroupIdx)-1]])
+		depInstGroupIdx = append(depInstGroupIdx, lstInstGroupIdx[len(lstInstGroupIdx)-1])
+	}
+
+	// 1st pass: add instructions depend on mem instructions
+	stIndex := startIdx
+	if startIdx < bb.WaitInstsIdx[boundaryIdx][0] {
+		stIndex = bb.WaitInstsIdx[boundaryIdx][0]
+	}
+	for i := stIndex; i < boundaryIdx; i++ {
+		inst := bb.Instructions[i]
+		if memInstGroup.IsRAW(inst) {
+			glog.V(3).Infoln("Dep inst: ", inst.Raw)
+			depInstGroup.add(inst)
+			depInstGroupIdx = append(depInstGroupIdx, i)
+		}
 	}
 
 	for _, idx := range memInstGroupIdx {
@@ -123,13 +141,8 @@ func (bb *BasicBlock) GenHintInWindow(startIdx, boundaryIdx, endIdx int) {
 	for _, idx := range lstInstGroupIdx {
 		glog.V(3).Infoln("Lst insts", idx, bb.Instructions[idx].Raw)
 	}
-
-	// 1st pass: add instructions depend on mem instructions
-	for i := startIdx; i < boundaryIdx; i++ {
-		inst := bb.Instructions[i]
-		if memInstGroup.IsRAW(inst) {
-			depInstGroup.add(inst)
-		}
+	for _, idx := range depInstGroupIdx {
+		glog.V(3).Infoln("Dep insts", idx, bb.Instructions[idx].Raw)
 	}
 
 	// Add instructions that is independent of memory instruction group
@@ -160,6 +173,9 @@ func (bb *BasicBlock) GenHintInWindow(startIdx, boundaryIdx, endIdx int) {
 				inst.Hint.DepStatus = dep_idp
 				if inst.Text != "s_waitcnt" {
 					bb.IdpInsts = append(bb.IdpInsts, inst)
+					// inst.Hint.Role = role_preexec_cand
+					// fmt.Println(roleMap[inst.Hint.Role])
+					// fmt.Println(inst.Raw)
 				}
 				continue
 			} else {
@@ -258,4 +274,17 @@ func (bb *BasicBlock) GenHint() {
 
 func (bb *BasicBlock) Print() {
 	glog.V(3).Infoln(bb.Label)
+}
+
+func (bb *BasicBlock) PrintHeatmap() {
+	for _, inst := range bb.Instructions {
+		// fmt.Printf("%d,", inst.Hint.Role)
+		if inst.Hint.DepStatus == dep_idp && inst.Text != "s_waitcnt" {
+			fmt.Printf("%d,", role_preexec_cand)
+		} else if inst.Hint.Role == role_long_latency {
+			fmt.Printf("%d,", role_long_latency)
+		} else {
+			fmt.Printf("%d,", role_regular_inst)
+		}
+	}
 }
