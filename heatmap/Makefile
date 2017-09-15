@@ -1,4 +1,4 @@
-DATA = $(wildcard *.csv)
+DATA = $(sort $(wildcard *.csv))
 
 all: eps
 
